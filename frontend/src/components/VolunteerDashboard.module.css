@@ -1,0 +1,25 @@
+.pageWrapper {
+    overflow: scroll;
+}
+
+.openingsWrappers {
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 600px) {
+    .openingsWrappers {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (min-width: 1100px) {
+    .openingsWrappers {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+}
+
+@media (min-width: 1800px) {
+    .openingsWrappers {
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+    }
+}
