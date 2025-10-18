@@ -1,16 +1,17 @@
+import { login, signup } from '../util/api/auth';
 import styles from './UserCredentialForm.module.css';
 import { useActionState } from "react";
 
 export default function UserCredentialForm({
     isLogin
 }) {
-    const formAction = () => {};
+    const formAction = isLogin ? login : signup;
 
     const title = isLogin ? "Log in" : "Sign up";
     const anchorText = isLogin ? "Sign up instead" : "Log in instead";
     const anchorLink = isLogin ? "/signup" : "/login";
 
-    const [state, action, isPending] = useActionState(formAction, {});
+    const [state, action, isPending] = useActionState(formAction, undefined);
 
     return (
         <div className="d-flex flex-grow-1 align-items-center justify-content-center">
@@ -24,11 +25,11 @@ export default function UserCredentialForm({
                 <div className="card-body">
                     <div className="mb-3">
                         <label htmlFor="email-input" className="form-label">Email address</label>
-                        <input type="email" className="form-control" id="email-input" />
+                        <input type="email" className="form-control" id="email-input" name="email" />
                     </div>
                     <div className="mb-3">
                         <label htmlFor="password-input" className="form-label">Password</label>
-                        <input type="password" className="form-control" id="password-input" />
+                        <input type="password" className="form-control" id="password-input" name="password" />
                     </div>
                     <div className="mb-3 d-flex gap-2">
                         <div className={styles.signupOption}>
@@ -44,11 +45,26 @@ export default function UserCredentialForm({
                             <img className="img-thumbnail" src="/placeholder.svg" />
                         </div>
                     </div>
+                    {!isLogin &&
+                    <div className="mb-3 form-check">
+                        <input type="checkbox" className="form-check-input" id="organization-check-input" name="is-org"/>
+                        <label className="form-check-label" htmlFor="organization-check-input">Sign up as organization</label>
+                    </div>
+                    }
                     <div className="mb-3">
                         <a className="link-primary icon-link link-underline-opacity-75" href={anchorLink}>{anchorText}</a>
                     </div>
                     <button type="submit" className="btn btn-primary">{title}</button>
                 </div>
+                {state &&
+                    <div className={"card-footer text-" + (state.success ? "success" : "danger")}>
+                    {state.success ?
+                        state.data.message
+                    :
+                        state.error
+                    }
+                    </div>
+                }
             </form>
         </div>
     );
