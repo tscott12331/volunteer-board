@@ -1,6 +1,3 @@
-
-
-
 function JobPostContainer({ jobPosts }) {
   return (
     <div className="job-post-container">
