@@ -13,7 +13,7 @@ export default function UserCredentialForm({
     const [state, action, isPending] = useActionState(formAction, {});
 
     return (
-        <div className="h-100 d-flex align-items-center justify-content-center">
+        <div className="d-flex flex-grow-1 align-items-center justify-content-center">
             <form 
                 className={"card " + styles.credentialCard}
                 action={action}

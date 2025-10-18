@@ -4,7 +4,8 @@ import styles from './VolunteerDashboard.module.css';
 import ProjectInfoModal from './ProjectInfoModal';
 
 export default function VolunteerDashboard() {
-    const [openings, setOpenings] = useState([{
+    const [openings, setOpenings] = useState([
+    {
         title: "Park Cleanup",
         description: "Come help us clean up the park...",
         image: "/placeholder.svg",
@@ -69,8 +70,8 @@ export default function VolunteerDashboard() {
 
     return (
         <>
-        <div className={styles.pageWrapper}>
-            <h2 className="mb-4 text-center fw-bold">Openings</h2>
+        <div className={"p-4 flex-grow-1 " + styles.pageWrapper}>
+            <h2 className="mb-4 text-center fw-bold">Register to Volunteer</h2>
             <div className="input-group">
                 <input 
                     type="text" 
@@ -111,7 +112,7 @@ export default function VolunteerDashboard() {
                             />
                         )
                     :
-                    <p>No openings available</p>
+                    <p className="text-center">No openings available</p>
                 }
             </div>
         </div>
