@@ -1,4 +1,5 @@
 import './App.css'
+import 'bootstrap';
 import { BrowserRouter as Router, Routes, Route } from 'react-router'
 import VolunteerDashboard from './components/VolunteerDashboard'
 

@@ -5,10 +5,24 @@ export default function OpeningCard({
     description,
     image,
     date,
+    onMoreInfo,
 }) {
     return (
+        <>
         <div className={"card " + styles.openingCard}>
-            <img src={image} className={"card-img-top " + styles.cardImg} alt="..." />
+            <div className="card-header d-flex justify-content-end">
+                <button 
+                    type="button"
+                    className="btn btn-outline-primary"
+                    onClick={() => onMoreInfo?.({title, description, image, date})}
+
+                    data-bs-toggle="modal" 
+                    data-bs-target="#info-modal"
+                >
+                More Info
+                </button>
+            </div>
+            <img src={image} className={"card-img-top " + styles.cardImg} alt="Project photos" />
             <div className="card-body">
                 <h5 className="card-title">{title}</h5>
                 <p className="card-text">{description}</p>
@@ -19,5 +33,6 @@ export default function OpeningCard({
                 <span>{date.toLocaleTimeString()}</span>
             </div>
         </div>
+        </>
     )
 }

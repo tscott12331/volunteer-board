@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import OpeningCard from './OpeningCard';
 import styles from './VolunteerDashboard.module.css';
+import ProjectInfoModal from './ProjectInfoModal';
 
 export default function VolunteerDashboard() {
     const [openings, setOpenings] = useState([{
@@ -47,6 +48,7 @@ export default function VolunteerDashboard() {
     ]);
 
     const [dateFilter, setDateFilter] = useState(undefined);
+    const [selectedProject, setSelectedProject] = useState(undefined);
 
     const onDateChange = e => {
         if(e.target.value.length > 0) {
@@ -66,11 +68,17 @@ export default function VolunteerDashboard() {
 
 
     return (
+        <>
         <div className={styles.pageWrapper}>
             <h2 className="mb-4 text-center fw-bold">Openings</h2>
             <div className="input-group">
-                <input type="text" className="form-control" aria-label="Text input with segmented dropdown button"/>
-                <button type="button" className="btn btn-outline-secondary">Search</button>
+                <input 
+                    type="text" 
+                    className="form-control" 
+                    placeholder="Search for openings"
+                    aria-label="Text input with segmented dropdown button"
+                />
+                <button type="button" className="btn btn-primary">Search</button>
                 <input 
                     type="date" 
                     className="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split" 
@@ -87,6 +95,7 @@ export default function VolunteerDashboard() {
                             description={o.description}
                             image={o.image}
                             date={o.date}
+                            onMoreInfo={(project) => setSelectedProject(project)}
                             key={i}
                             />
                         )
@@ -97,6 +106,7 @@ export default function VolunteerDashboard() {
                             description={o.description}
                             image={o.image}
                             date={o.date}
+                            onMoreInfo={(project) => setSelectedProject(project)}
                             key={i}
                             />
                         )
@@ -105,5 +115,7 @@ export default function VolunteerDashboard() {
                 }
             </div>
         </div>
+        <ProjectInfoModal project={selectedProject} />
+        </>
     )
 }
