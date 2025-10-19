@@ -4,7 +4,8 @@ export default function EventInfoModal({
     const title = event?.title ?? "Title";
     const description = event?.description ?? "Description";
     const image_url = event?.image_url ?? null;
-    const start_at = event?.date ?? new Date();
+    const start_at = event?.start_at ?? new Date();
+    const startDate = new Date(start_at);
     const org = event?.org ?? "Organization";
 
 
@@ -19,11 +20,13 @@ export default function EventInfoModal({
                 <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
               <div className="modal-body">
-                <img className="img-thumbnail" src={image_url} />
-                <p className="my-3">{description}</p>
+                {image_url &&
+                <img className="img-thumbnail mb-3" src={image_url} />
+                }
+                <p>{description}</p>
                 <p className="mb-1">Posted by: {org}</p>
-                <p className="mb-1">Date: {start_at.toLocaleDateString()}</p>
-                <p className="mb-1">Time: {start_at.toLocaleTimeString()}</p>
+                <p className="mb-1">Date: {startDate.toLocaleDateString()}</p>
+                <p className="mb-1">Time: {startDate.toLocaleTimeString()}</p>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">Close</button>

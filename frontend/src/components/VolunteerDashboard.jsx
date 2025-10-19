@@ -1,55 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import EventCard from './EventCard';
 import styles from './VolunteerDashboard.module.css';
 import EventInfoModal from './EventInfoModal';
+import { fetchEvents } from '../util/api/events';
 
 export default function VolunteerDashboard() {
-    const [events, setEvents] = useState([
-    {
-        title: "Park Cleanup",
-        description: "Come help us clean up the park...",
-        image_url: "/placeholder.svg",
-        start_at: new Date("December 12, 2025"),
-    },{
-        title: "Park Cleanup",
-        description: "Come help us clean up the park...",
-        image_url: "/placeholder.svg",
-        start_at: new Date("December 13, 2025"),
-    },{
-        title: "Park Cleanup",
-        description: "Come help us clean up the park...",
-        image_url: "/placeholder.svg",
-        start_at: new Date("August 12, 2025"),
-    },{
-        title: "Park Cleanup",
-        description: "Come help us clean up the park...",
-        image_url: "/placeholder.svg",
-        start_at: new Date("July 28, 2025"),
-    },{
-        title: "Park Cleanup",
-        description: "Come help us clean up the park...",
-        image_url: "/placeholder.svg",
-        start_at: new Date("December 12, 2025"),
-    },{
-        title: "Park Cleanup",
-        description: "Come help us clean up the park...",
-        image_url: "/placeholder.svg",
-        start_at: new Date("December 12, 2025"),
-    },{
-        title: "Park Cleanup",
-        description: "Come help us clean up the park...",
-        image_url: "/placeholder.svg",
-        start_at: new Date("December 12, 2025"),
-    },{
-        title: "Park Cleanup",
-        description: "Come help us clean up the park...",
-        image_url: "/placeholder.svg",
-        start_at: new Date("December 12, 2025"),
-    },
-    ]);
+    const [events, setEvents] = useState([]);
 
     const [dateFilter, setDateFilter] = useState(undefined);
-    const [selectedProject, setSelectedProject] = useState(undefined);
+    const [selectedEvent, setSelectedEvent] = useState(undefined);
 
     const onDateChange = e => {
         if(e.target.value.length > 0) {
@@ -67,6 +26,13 @@ export default function VolunteerDashboard() {
             && date1.getDate() === date2.getDate()
     }
 
+    useEffect(() => {
+        fetchEvents().then(res => {
+            if(res.success) {
+                setEvents(res.data);
+            }
+        })
+    }, []);
 
     return (
         <>
@@ -86,14 +52,15 @@ export default function VolunteerDashboard() {
                     onChange={onDateChange}
                 />
             </div>
-            <div className={"d-grid gap-3 mt-4 " + styles.eventsWrappers}>
                 {
                     events.length > 0 ?
+                    <div className={"d-grid gap-3 mt-4 " + styles.eventsWrappers}>
+                        {
                         dateFilter ?
                         events.filter(e => datesMatch(e.date, dateFilter)).map((e, i) =>
                             <EventCard 
                             event={e}
-                            onMoreInfo={(project) => setSelectedProject(project)}
+                            onMoreInfo={(event) => setSelectedEvent(event)}
                             key={i}
                             />
                         )
@@ -101,16 +68,17 @@ export default function VolunteerDashboard() {
                         events.map((e, i) =>
                             <EventCard 
                             event={e}
-                            onMoreInfo={(project) => setSelectedProject(project)}
+                            onMoreInfo={(event) => setSelectedEvent(event)}
                             key={i}
                             />
                         )
+                    }
+                    </div>
                     :
-                    <p className="text-center">No events available</p>
+                    <p className="text-center mt-4">No events available</p>
                 }
-            </div>
         </div>
-        <EventInfoModal event={selectedProject} />
+        <EventInfoModal event={selectedEvent} />
         </>
     )
 }
