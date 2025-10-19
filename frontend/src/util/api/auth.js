@@ -30,14 +30,14 @@ export async function signup(previousState, formData) {
             }
         }
 
-        res = await supabase.auth.setSession(res.data.session);
-        if(res.error) {
-            console.error(res.error);
-            return {
-                success: false,
-                error: res.error.message,
-            }
-        }
+        // res = await supabase.auth.setSession(res.data.session);
+        // if(res.error) {
+        //     console.error(res.error);
+        //     return {
+        //         success: false,
+        //         error: res.error.message,
+        //     }
+        // }
 
         return {
             success: true,
@@ -78,14 +78,14 @@ export async function login(previousState, formData) {
             }
         }
 
-        res = await supabase.auth.setSession(res.data.session);
-        if(res.error) {
-            console.error(res.error);
-            return {
-                success: false,
-                error: res.error.message,
-            }
-        }
+        // res = await supabase.auth.setSession(res.data.session);
+        // if(res.error) {
+        //     console.error(res.error);
+        //     return {
+        //         success: false,
+        //         error: res.error.message,
+        //     }
+        // }
 
         return {
             success: true,
