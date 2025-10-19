@@ -120,7 +120,7 @@ export default function DiscoverPanel() {
             :
             <p className="text-center mt-4">No events available</p>
             }
-        <EventInfoModal event={selectedEvent} />
+        <EventInfoModal id="info-modal" event={selectedEvent} />
         </>
     );
 }
