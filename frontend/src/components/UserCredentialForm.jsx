@@ -1,21 +1,36 @@
+import { useNavigate } from 'react-router';
 import { signin, signup } from '../util/api/auth';
 import styles from './UserCredentialForm.module.css';
 import { useActionState } from "react";
 
+/*
+    * Credential from used for signing in or signing up
+    * props:
+        * isSignin: boolean
+            * used to determine what type of form to display
+*/
 export default function UserCredentialForm({
     isSignin
 }) {
+    const navigate = useNavigate();
+
+    // set correct form action based on form type
     const formAction = isSignin ? signin : signup;
 
+    // set basic form text and links based on form type
     const title = isSignin ? "Welcome back" : "Begin volunteering now";
     const cardTitle = isSignin ? "Sign in" : "Sign up";
     const anchorText = isSignin ? "Don't have an account?" : "Already have an account?";
     const anchorLink = isSignin ? "/signup" : "/signin";
 
+    // state: data returned from the form action
+    // action: function called when the form is submitted
+    // isPending: pending status of active action call
     const [state, action, isPending] = useActionState(formAction, undefined);
 
     if(isSignin && state?.success) {
-        location.assign('/');
+        // navigate to home page on successful signin
+        navigate('/');
     }
 
     return (

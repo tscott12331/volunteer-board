@@ -10,19 +10,24 @@ import { supabase } from './util/api/supabaseClient';
 import { useEffect, useState } from 'react';
 
 function App() {
+    // holds the supabase auth session
     const [session, setSession] = useState(null);
 
     useEffect(() => {
+        // fetch session on mount
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
         });
 
+        // add listener to auth state change
         const {
             data: { subscription }
         } = supabase.auth.onAuthStateChange((e, session) => {
+            // set session when the auth state changes
             setSession(session);
         })
         
+        // unsubscribe from onAuthStateChange
         return () => subscription.unsubscribe();
     }, []);
 

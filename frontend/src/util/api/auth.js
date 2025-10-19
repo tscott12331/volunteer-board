@@ -1,38 +1,26 @@
+import { APIError, APISuccess } from "./api-response";
 import { supabase } from "./supabaseClient";
 
 export async function signup(previousState, formData) {
     const email = formData.get('email');
     const password = formData.get('password');
+
+    // info from organization checkbox
     const isOrgTxt = formData.get('is-org');
     const isOrg = isOrgTxt === 'on' ? true : false;
-    console.log(email,password,isOrg);
 
-    if(!email || !password) {
-        return {
-            success: false,
-            error: "Insufficient credentials",
-        }
-    }
+    if(!email || !password) return APIError("Insufficient credentials");
     
-    console.log(email, password, isOrg);
-
     try {
         let res = await supabase.auth.signUp({
             email,
             password,
         })
 
-        if(res.error) {
-            console.error(res.error);
-            return {
-                success: false,
-                error: res.error.message,
-            }
-        }
-
-        const id = res.data.user.id;
-        console.log(id);
+        if(res.error) return APIError(res.error.message);
         
+        // const id = res.data.user.id;
+        //
         // setting account type not working at the moment
         // if(isOrg) {
         //     res = await supabase.from('profiles')
@@ -42,39 +30,21 @@ export async function signup(previousState, formData) {
         //                     .eq('id', id);
         //     console.log(res);
         //
-        //     if(res.error) {
-        //         console.error(res.error);
-        //         return {
-        //             success: false,
-        //             error: res.error.message,
-        //         }
-        //     }
+        //     if(res.error) return APIError(res.error.message);
         // }
 
-        return {
-            success: true,
-            data: {
+        return APISuccess({
                 message: "Please check your inbox for a confirmation email",
-            }
-        }
+        });
     } catch(error) {
-        console.error(error);
-        return {
-            success: false,
-            error: "Server error",
-        }
+        return APIError("Server error");
     }
 }
 
 export async function signin(previousState, formData) {
     const email = formData.get('email');
     const password = formData.get('password');
-    if(!email || !password) {
-        return {
-            success: false,
-            error: "Insufficient credentials",
-        }
-    }
+    if(!email || !password) return APIError("Insufficient credentials");
 
     try {
         let res = await supabase.auth.signInWithPassword({
@@ -82,25 +52,12 @@ export async function signin(previousState, formData) {
             password,
         })
 
-        if(res.error) {
-            console.error(res.error);
-            return {
-                success: false,
-                error: res.error.message,
-            }
-        }
+        if(res.error) return APIError(res.error.message);
 
-        return {
-            success: true,
-            data: {
+        return APISuccess({
                 message: "Successful login, you will be redirected shortly",
-            }
-        }
+        });
     } catch(error) {
-        console.error(error);
-        return {
-            success: false,
-            error: "Server error",
-        }
+        return APIError("Server error");
     }
 }

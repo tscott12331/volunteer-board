@@ -1,65 +1,38 @@
+import { APIError, APISuccess } from "./api-response";
 import { supabase } from "./supabaseClient";
 
 export async function fetchEvents(query, startDate, endDate) {
     try {
+        // call list_published_events db function
         const res = await supabase.rpc('list_published_events', {
-            q: query,
-            from_ts: startDate?.toISOString(),
-            to_ts: endDate?.toISOString(),
+            q: query, // search query
+            from_ts: startDate?.toISOString(), // start date filter
+            to_ts: endDate?.toISOString(), // end date filter
         });
 
-        if(res.error) {
-            console.error(res.error);
-            return {
-                success: false,
-                error: res.error.message,
-            }
-        }
+        if(res.error) return APIError(res.error.message);
 
-        return {
-            success: true,
-            data: res.data,
-        }
+        return APISuccess(res.data);
     } catch(error) {
-        console.error(error);
-        return {
-            success: false,
-            error: "Server error",
-        }
+        return APIError("Server error");
     }
 }
 
 export async function fetchOrganization(id) {
-    if(!id) {
-        return {
-            success: false,
-            error: "Organization id is undefined",
-        }
-    }
+    if(!id) return APIError("Organization ID is undefined");
 
     try {
+        // select all cols from this specific organization
         let res = await supabase.from('organizations')
                     .select('*')
                     .eq('id', id)
                     .limit(1);
 
-        if(res.error) {
-            console.error(res.error);
-            return {
-                success: false,
-                error: res.error.message,
-            }
-        }
+        if(res.error) return APIError(res.error.message);
 
-        return {
-            success: true,
-            data: res.data[0],
-        }
+        // supabase returns an array, we only want one
+        return APISuccess(res.data[0]);
     } catch(error) {
-        console.error(error);
-        return {
-            success: false,
-            error: "Server error",
-        }
+        return APIError("Server error");
     }
 }

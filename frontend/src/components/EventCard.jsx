@@ -1,5 +1,30 @@
 import styles from './EventCard.module.css';
 
+/*
+    * Card displaying basic info for an event
+    * props:
+        * event: {
+            * id: string
+            * org_id: string
+            * title: string
+            * summary: string | null
+            * description: string | null
+            * location: {
+                * lon: string
+                * lat: string
+            * } | null
+            * start_at: string (timestamptz)
+            * end_at: string (timestamptz)
+            * status: "draft" | "published" | "cancelled" | "completed"
+            * capacity: number
+            * image_url: string | null
+            * created_at: string (timestamptz)
+            * updated_at: string (timestamptz)
+        * } | null | undefined
+            * Information about the event
+        * onMoreInfo: (event) => void | undefined;
+            * Called when more info button is pressed
+*/
 export default function EventCard({
     event,
     onMoreInfo,
