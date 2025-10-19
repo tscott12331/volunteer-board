@@ -1,0 +1,9 @@
+.pageWrapper {
+    max-width: 1280px
+}
+
+.pfp {
+    width: clamp(300px, 50%, 700px);
+    border-radius: clamp(300px, 50%, 700px);
+    aspect-ratio: 1 / 1;
+}

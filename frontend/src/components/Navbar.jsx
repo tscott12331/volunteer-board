@@ -12,6 +12,9 @@ export default function Navbar() {
                             <a className="nav-link active" aria-current="page" href="/">Home</a>
                         </li>
                         <li className="nav-item">
+                            <a className="nav-link active" aria-current="page" href="/profile/1">Profile</a>
+                        </li>
+                        <li className="nav-item">
                             <a className="nav-link active" aria-current="page" href="/login">Log In</a>
                         </li>
                         <li className="nav-item">
