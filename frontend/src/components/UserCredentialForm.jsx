@@ -7,9 +7,9 @@ export default function UserCredentialForm({
 }) {
     const formAction = isLogin ? login : signup;
 
-    const title = isLogin ? "Log in" : "Sign up";
-    const anchorText = isLogin ? "Sign up instead" : "Log in instead";
-    const anchorLink = isLogin ? "/signup" : "/login";
+    const title = isLogin ? "Sign in" : "Sign up";
+    const anchorText = isLogin ? "Don't have an account?" : "Already have an account?";
+    const anchorLink = isLogin ? "/signup" : "/signin";
 
     const [state, action, isPending] = useActionState(formAction, undefined);
 

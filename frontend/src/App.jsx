@@ -33,7 +33,7 @@ function App() {
                 <Route path="/" element={<VolunteerDashboard />} />
                 <Route path="/profile/:userId" element={<ProfilePage />} />
                 <Route path="/signup" element={<UserCredentialForm isLogin={false} />} />
-                <Route path="/login" element={<UserCredentialForm isLogin={true} />} />
+                <Route path="/signin" element={<UserCredentialForm isLogin={true} />} />
             </Routes>
         </Router>
     )
