@@ -57,9 +57,11 @@ export default function EventCard({
             {image_url &&
             <img src={image_url} className={"text-center card-img-top " + styles.cardImg} alt="Project photos" />
             }
-            <div className="card-body">
-                <h5 className="card-title">{title}</h5>
-                <p className="card-text">{description}</p>
+            <div className="card-body d-flex gap-3 flex-column justify-content-between align-items-start">
+                <div>
+                    <h5 className="card-title">{title}</h5>
+                    <p className="card-text">{description}</p>
+                </div>
                 <button 
                     type="button" 
                     className="btn btn-primary"
