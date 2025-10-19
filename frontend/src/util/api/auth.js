@@ -30,12 +30,24 @@ export async function signup(previousState, formData) {
             }
         }
 
-        // res = await supabase.auth.setSession(res.data.session);
-        // if(res.error) {
-        //     console.error(res.error);
-        //     return {
-        //         success: false,
-        //         error: res.error.message,
+        const id = res.data.user.id;
+        console.log(id);
+        
+        // setting account type not working at the moment
+        // if(isOrg) {
+        //     res = await supabase.from('profiles')
+        //                     .update({
+        //                         'account': 'organization'
+        //                     })
+        //                     .eq('id', id);
+        //     console.log(res);
+        //
+        //     if(res.error) {
+        //         console.error(res.error);
+        //         return {
+        //             success: false,
+        //             error: res.error.message,
+        //         }
         //     }
         // }
 
@@ -54,7 +66,7 @@ export async function signup(previousState, formData) {
     }
 }
 
-export async function login(previousState, formData) {
+export async function signin(previousState, formData) {
     const email = formData.get('email');
     const password = formData.get('password');
     if(!email || !password) {
@@ -77,15 +89,6 @@ export async function login(previousState, formData) {
                 error: res.error.message,
             }
         }
-
-        // res = await supabase.auth.setSession(res.data.session);
-        // if(res.error) {
-        //     console.error(res.error);
-        //     return {
-        //         success: false,
-        //         error: res.error.message,
-        //     }
-        // }
 
         return {
             success: true,

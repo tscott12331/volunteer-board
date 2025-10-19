@@ -1,26 +1,32 @@
-import { login, signup } from '../util/api/auth';
+import { signin, signup } from '../util/api/auth';
 import styles from './UserCredentialForm.module.css';
 import { useActionState } from "react";
 
 export default function UserCredentialForm({
-    isLogin
+    isSignin
 }) {
-    const formAction = isLogin ? login : signup;
+    const formAction = isSignin ? signin : signup;
 
-    const title = isLogin ? "Sign in" : "Sign up";
-    const anchorText = isLogin ? "Don't have an account?" : "Already have an account?";
-    const anchorLink = isLogin ? "/signup" : "/signin";
+    const title = isSignin ? "Welcome back" : "Begin volunteering now";
+    const cardTitle = isSignin ? "Sign in" : "Sign up";
+    const anchorText = isSignin ? "Don't have an account?" : "Already have an account?";
+    const anchorLink = isSignin ? "/signup" : "/signin";
 
     const [state, action, isPending] = useActionState(formAction, undefined);
 
+    if(isSignin && state?.success) {
+        location.assign('/');
+    }
+
     return (
-        <div className="d-flex flex-grow-1 align-items-center justify-content-center">
+        <div className="d-flex flex-column gap-5 align-items-center justify-content-start flex-grow-1 ">
+            <h1 className="mt-5 text-body-emphasis">{title}</h1>
             <form 
                 className={"card " + styles.credentialCard}
                 action={action}
             >
                 <header className="card-header">
-                    <h2>{title}</h2>
+                    <h2>{cardTitle}</h2>
                 </header>
                 <div className="card-body">
                     <div className="mb-3">
@@ -45,7 +51,7 @@ export default function UserCredentialForm({
                             <img className="img-thumbnail" src="/placeholder.svg" />
                         </div>
                     </div>
-                    {!isLogin &&
+                    {!isSignin &&
                     <div className="mb-3 form-check">
                         <input type="checkbox" className="form-check-input" id="organization-check-input" name="is-org"/>
                         <label className="form-check-label" htmlFor="organization-check-input">Sign up as organization</label>
@@ -54,7 +60,7 @@ export default function UserCredentialForm({
                     <div className="mb-3">
                         <a className="link-primary icon-link link-underline-opacity-75" href={anchorLink}>{anchorText}</a>
                     </div>
-                    <button type="submit" className="btn btn-primary">{title}</button>
+                    <button type="submit" className="btn btn-primary">{cardTitle}</button>
                 </div>
                 {state &&
                     <div className={"card-footer text-" + (state.success ? "success" : "danger")}>

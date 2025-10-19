@@ -32,8 +32,8 @@ function App() {
             <Routes>
                 <Route path="/" element={<VolunteerDashboard />} />
                 <Route path="/profile/:userId" element={<ProfilePage />} />
-                <Route path="/signup" element={<UserCredentialForm isLogin={false} />} />
-                <Route path="/signin" element={<UserCredentialForm isLogin={true} />} />
+                <Route path="/signup" element={<UserCredentialForm isSignin={false} />} />
+                <Route path="/signin" element={<UserCredentialForm isSignin={true} />} />
             </Routes>
         </Router>
     )
