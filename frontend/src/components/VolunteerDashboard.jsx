@@ -66,7 +66,7 @@ export default function VolunteerDashboard() {
                 <ul className="dropdown-menu">
                     <li>
                         <div className="dropdown-item d-flex gap-2 justify-content-between">
-                            <label className="lh-lg" htmlFor="start-date">Start: </label>
+                            <label className="lh-lg text-body-emphasis" htmlFor="start-date">Start: </label>
                             <input 
                                 id="start-date"
                                 type="date" 
@@ -78,7 +78,7 @@ export default function VolunteerDashboard() {
                     <li><hr className="dropdown-divider" /></li>
                     <li>
                         <div className="dropdown-item d-flex gap-2 justify-content-between">
-                            <label className="lh-lg" htmlFor="end-date">End: </label>
+                            <label className="lh-lg text-body-emphasis" htmlFor="end-date">End: </label>
                             <input 
                                 id="end-date"
                                 type="date" 

@@ -7,6 +7,12 @@ export default function EventCard({
     const { title, description, image_url, start_at } = event
     const startDate = new Date(start_at);
 
+    const formatTime = (time) => {
+        const [value, md] = time.split(' ');
+        const newValue = value.slice(0, -3);
+        return `${newValue} ${md}`;
+    }
+
     return (
         <>
         <div className={"card " + styles.openingCard}>
@@ -32,7 +38,7 @@ export default function EventCard({
             </div>
             <div className="card-footer d-flex justify-content-between">
                 <span>{startDate.toLocaleDateString()}</span>
-                <span>{startDate.toLocaleTimeString()}</span>
+                <span>{formatTime(startDate.toLocaleTimeString())}</span>
             </div>
         </div>
         </>
