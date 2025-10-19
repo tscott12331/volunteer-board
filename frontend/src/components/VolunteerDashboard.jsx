@@ -7,32 +7,45 @@ import { fetchEvents } from '../util/api/events';
 export default function VolunteerDashboard() {
     const [events, setEvents] = useState([]);
 
-    const [dateFilter, setDateFilter] = useState(undefined);
+    const [startDate, setStartDate] = useState(undefined);
+    const [endDate, setEndDate] = useState(undefined);
+    const [searchQuery, setSearchQuery] = useState(undefined);
+
+    const  [searchValue, setSearchValue] = useState("");
+
     const [selectedEvent, setSelectedEvent] = useState(undefined);
 
-    const onDateChange = e => {
+    const onDateFilterChange = (e, setFilter) => {
         if(e.target.value.length > 0) {
             const split = e.target.value.split('-');
             const d = new Date(split[0], split[1] - 1, split[2]);
-            setDateFilter(d);
+            setFilter(d);
         } else {
-            setDateFilter(undefined);
+            setFilter(undefined);
         }
     }
 
-    const datesMatch = (date1, date2) => {
-        return date1.getFullYear() === date2.getFullYear()
-            && date1.getMonth() === date2.getMonth()
-            && date1.getDate() === date2.getDate()
+    const onSearchInputChange = (e) => {
+        setSearchValue(e.target.value);
+    }
+
+    const onSearchInputKeyDown = (e) => {
+        if(e.key === "Enter") {
+            search();
+        }
+    }
+
+    const search = () => {
+        setSearchQuery(searchValue.length > 0 ? searchValue : undefined);
     }
 
     useEffect(() => {
-        fetchEvents().then(res => {
+        fetchEvents(searchQuery, startDate, endDate).then(res => {
             if(res.success) {
                 setEvents(res.data);
             }
         })
-    }, []);
+    }, [searchQuery, startDate, endDate]);
 
     return (
         <>
@@ -43,28 +56,44 @@ export default function VolunteerDashboard() {
                     type="text" 
                     className="form-control" 
                     placeholder="Search for events"
-                    aria-label="Text input with segmented dropdown button"
+                    aria-label="Text input with segmented dropdown filter button"
+                    value={searchValue}
+                    onChange={onSearchInputChange}
+                    onKeyDown={onSearchInputKeyDown}
+                
                 />
-                <button type="button" className="btn btn-primary">Search</button>
-                <input 
-                    type="date" 
-                    className="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split" 
-                    onChange={onDateChange}
-                />
+                <button className="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Filter</button>
+                <ul className="dropdown-menu">
+                    <li>
+                        <div className="dropdown-item d-flex gap-2 justify-content-between">
+                            <label className="lh-lg" htmlFor="start-date">Start: </label>
+                            <input 
+                                id="start-date"
+                                type="date" 
+                                className="btn btn-outline-secondary" 
+                                onChange={(e) => onDateFilterChange(e, setStartDate)}
+                            />
+                        </div>
+                    </li>
+                    <li><hr className="dropdown-divider" /></li>
+                    <li>
+                        <div className="dropdown-item d-flex gap-2 justify-content-between">
+                            <label className="lh-lg" htmlFor="end-date">End: </label>
+                            <input 
+                                id="end-date"
+                                type="date" 
+                                className="btn btn-outline-secondary" 
+                                onChange={(e) => onDateFilterChange(e, setEndDate)}
+                            />
+                        </div>
+                    </li>
+                </ul>
+                <button type="button" className="btn btn-primary" onClick={search}>Search</button>
             </div>
                 {
                     events.length > 0 ?
                     <div className={"d-grid gap-3 mt-4 " + styles.eventsWrappers}>
                         {
-                        dateFilter ?
-                        events.filter(e => datesMatch(e.date, dateFilter)).map((e, i) =>
-                            <EventCard 
-                            event={e}
-                            onMoreInfo={(event) => setSelectedEvent(event)}
-                            key={i}
-                            />
-                        )
-                        :
                         events.map((e, i) =>
                             <EventCard 
                             event={e}
@@ -72,7 +101,7 @@ export default function VolunteerDashboard() {
                             key={i}
                             />
                         )
-                    }
+                        }
                     </div>
                     :
                     <p className="text-center mt-4">No events available</p>

@@ -1,9 +1,13 @@
 import { supabase } from "./supabaseClient";
 
-export async function fetchEvents() {
+export async function fetchEvents(query, startDate, endDate) {
     try {
-        const res = await supabase.from('events')
-                        .select("*");
+        const res = await supabase.rpc('list_published_events', {
+            q: query,
+            from_ts: startDate?.toISOString(),
+            to_ts: endDate?.toISOString(),
+        });
+
         if(res.error) {
             console.error(res.error);
             return {
