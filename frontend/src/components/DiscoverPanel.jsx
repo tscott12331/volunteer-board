@@ -108,11 +108,11 @@ export default function DiscoverPanel() {
             events.length > 0 ?
             <div className={"d-grid gap-3 mt-4 " + styles.eventsWrappers}>
             {
-                events.map((e, i) =>
+                events.map(e =>
                 <EventCard 
                 event={e}
                 onMoreInfo={(event) => setSelectedEvent(event)}
-                key={i}
+                key={e.id}
                 />
                 )
             }

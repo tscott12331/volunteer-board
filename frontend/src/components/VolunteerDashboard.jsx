@@ -1,6 +1,7 @@
 import styles from './VolunteerDashboard.module.css';
 import DiscoverPanel from './DiscoverPanel';
 import RegistrationsPanel from './RegistrationsPanel';
+import FollowingPanel from './FollowingPanel';
 
 /*
     * Page to display published volunteer events, user's current registrations,
@@ -29,7 +30,9 @@ export default function VolunteerDashboard() {
                 <div className="tab-pane fade" id="registrations-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabIndex="0">
                     <RegistrationsPanel />
                 </div>
-                <div className="tab-pane fade" id="following-tab-pane" role="tabpanel" aria-labelledby="contact-tab" tabIndex="0">...</div>
+                <div className="tab-pane fade" id="following-tab-pane" role="tabpanel" aria-labelledby="contact-tab" tabIndex="0">
+                    <FollowingPanel />
+                </div>
             </div>
         </div>
         </>
