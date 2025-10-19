@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchOrganization } from "../util/api/events";
+import { formatDateAtTime } from "../util/date";
 
 /*
     * Modal popup displaying more detailed information about an event
@@ -25,6 +26,7 @@ import { fetchOrganization } from "../util/api/events";
             * Information about the event
 */
 export default function EventInfoModal({
+    id,
     event,
 }) {
     // convert date strings into date objects
@@ -35,13 +37,6 @@ export default function EventInfoModal({
 
     // holds organization data after it is fetched
     const [org, setOrg] = useState(undefined);
-
-    // formats date into MM/DD/YY at HH:MM MD
-    const formatDate = (date) => {
-        return `${date.toLocaleString(undefined, {
-                    dateStyle: 'short'
-                })} at ${date.getHours() % 12}:${date.getMinutes()} ${date.getHours() > 11 ? 'PM' : 'AM'}`
-    }
 
     useEffect(() => {
         // fetch organization on event change
@@ -55,7 +50,7 @@ export default function EventInfoModal({
 
 
     return (
-        <div className="modal fade" id="info-modal" data-bs-backdrop="static" data-bs-keyboard="false" tabIndex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div className="modal fade" id={id} data-bs-backdrop="static" data-bs-keyboard="false" tabIndex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
           <div 
               className="modal-dialog modal-dialog-centered modal-dialog-scrollable"
           >
@@ -77,8 +72,8 @@ export default function EventInfoModal({
                 {org &&
                     <p className="mb-1"><span className="text-body-emphasis">Posted by:</span> <a className="link-info" href={`/org/${org.slug}`}>{org.name}</a></p>
                 }
-                <p className="mb-1"><span className="text-body-emphasis">Starts:</span> {formatDate(startDate)}</p>
-                <p className="mb-1"><span className="text-body-emphasis">Ends:</span> {formatDate(endDate)}</p>
+                <p className="mb-1"><span className="text-body-emphasis">Starts:</span> {formatDateAtTime(startDate)}</p>
+                <p className="mb-1"><span className="text-body-emphasis">Ends:</span> {formatDateAtTime(endDate)}</p>
                 <p className="mb-1"><span className="text-body-emphasis">Volunteer capacity:</span> {event.capacity}</p>
               </div>
               <div className="modal-footer">

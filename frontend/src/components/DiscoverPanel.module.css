@@ -1,0 +1,21 @@
+.eventsWrappers {
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 600px) {
+    .eventsWrappers {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (min-width: 1100px) {
+    .eventsWrappers {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+}
+
+@media (min-width: 1800px) {
+    .eventsWrappers {
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+    }
+}
