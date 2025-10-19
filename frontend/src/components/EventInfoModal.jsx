@@ -1,16 +1,42 @@
 import { useEffect, useState } from "react";
 import { fetchOrganization } from "../util/api/events";
 
+/*
+    * Modal popup displaying more detailed information about an event
+    * props:
+        * event: {
+            * id: string
+            * org_id: string
+            * title: string
+            * summary: string | null
+            * description: string | null
+            * location: {
+                * lon: string
+                * lat: string
+            * } | null
+            * start_at: string (timestamptz)
+            * end_at: string (timestamptz)
+            * status: "draft" | "published" | "cancelled" | "completed"
+            * capacity: number
+            * image_url: string | null
+            * created_at: string (timestamptz)
+            * updated_at: string (timestamptz)
+        * } | null | undefined
+            * Information about the event
+*/
 export default function EventInfoModal({
     event,
 }) {
+    // convert date strings into date objects
     const start_at = event?.start_at ?? new Date();
     const startDate = new Date(start_at);
     const end_at = event?.end_at ?? new Date();
     const endDate = new Date(end_at);
 
+    // holds organization data after it is fetched
     const [org, setOrg] = useState(undefined);
 
+    // formats date into MM/DD/YY at HH:MM MD
     const formatDate = (date) => {
         return `${date.toLocaleString(undefined, {
                     dateStyle: 'short'
@@ -18,8 +44,10 @@ export default function EventInfoModal({
     }
 
     useEffect(() => {
+        // fetch organization on event change
         fetchOrganization(event?.org_id).then(res => {
             if(res.success) {
+                // set organization on successful fetch
                 setOrg(res.data);
             }
         });

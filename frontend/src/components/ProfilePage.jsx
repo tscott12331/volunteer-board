@@ -3,20 +3,25 @@ import styles from './ProfilePage.module.css';
 import { useEffect, useState } from "react";
 import { fetchProfile } from '../util/api/profile';
 
+/*
+    * Page component displaying a user's profile information
+*/
 export default function ProfilePage() {
+    // userId from url param
     const { userId } = useParams();
 
+    // holds profile data
     const [profile, setProfile] = useState(undefined);
 
     useEffect(() => {
+        // fetch profile on page mount
         fetchProfile(userId).then(res => {
             if(res.success) {
+                // set profile on successful fetch
                 setProfile(res.data);
             }
         })
     }, []);
-
-    console.log(profile);
 
     return (
         <div className={"flex-grow-1 mx-auto p-4 " + styles.pageWrapper}>

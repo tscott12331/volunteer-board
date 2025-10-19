@@ -4,17 +4,27 @@ import styles from './VolunteerDashboard.module.css';
 import EventInfoModal from './EventInfoModal';
 import { fetchEvents } from '../util/api/events';
 
+/*
+    * Page to display published volunteer events
+    * Users can filter by search, start date, and end date
+*/
 export default function VolunteerDashboard() {
+    // available events based on search and date filters
     const [events, setEvents] = useState([]);
 
+    // filter states
     const [startDate, setStartDate] = useState(undefined);
     const [endDate, setEndDate] = useState(undefined);
     const [searchQuery, setSearchQuery] = useState(undefined);
 
+    // search input state
     const  [searchValue, setSearchValue] = useState("");
 
+    // the selected event will be displayed on the modal popup when
+    // the more info button is selected
     const [selectedEvent, setSelectedEvent] = useState(undefined);
 
+    // set date filter to proper date object when input is changed
     const onDateFilterChange = (e, setFilter) => {
         if(e.target.value.length > 0) {
             const split = e.target.value.split('-');
@@ -25,23 +35,28 @@ export default function VolunteerDashboard() {
         }
     }
 
+    // update search input state value
     const onSearchInputChange = (e) => {
         setSearchValue(e.target.value);
     }
 
+    // udpate search filter when user presses enter in the input
     const onSearchInputKeyDown = (e) => {
         if(e.key === "Enter") {
             search();
         }
     }
 
+    // update search filter
     const search = () => {
         setSearchQuery(searchValue.length > 0 ? searchValue : undefined);
     }
 
     useEffect(() => {
+        // fetch events based on a search query, start date, and end date
         fetchEvents(searchQuery, startDate, endDate).then(res => {
             if(res.success) {
+                // set events on successful fetch
                 setEvents(res.data);
             }
         })
