@@ -5,6 +5,14 @@ export default function EventCard({
     onMoreInfo,
 }) {
     const { title, description, image_url, start_at } = event
+    const startDate = new Date(start_at);
+
+    const formatTime = (time) => {
+        const [value, md] = time.split(' ');
+        const newValue = value.slice(0, -3);
+        return `${newValue} ${md}`;
+    }
+
     return (
         <>
         <div className={"card " + styles.openingCard}>
@@ -20,15 +28,17 @@ export default function EventCard({
                 More Info
                 </button>
             </div>
-            <img src={image_url} className={"card-img-top " + styles.cardImg} alt="Project photos" />
+            {image_url &&
+            <img src={image_url} className={"text-center card-img-top " + styles.cardImg} alt="Project photos" />
+            }
             <div className="card-body">
                 <h5 className="card-title">{title}</h5>
                 <p className="card-text">{description}</p>
                 <a href="#" className="btn btn-primary">Register</a>
             </div>
             <div className="card-footer d-flex justify-content-between">
-                <span>{start_at.toLocaleDateString()}</span>
-                <span>{start_at.toLocaleTimeString()}</span>
+                <span>{startDate.toLocaleDateString()}</span>
+                <span>{formatTime(startDate.toLocaleTimeString())}</span>
             </div>
         </div>
         </>
