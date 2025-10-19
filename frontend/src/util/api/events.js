@@ -36,3 +36,18 @@ export async function fetchOrganization(id) {
         return APIError("Server error");
     }
 }
+
+export async function registerForEvent(eventId) {
+    try {
+        const res = await supabase.rpc('join_event', {
+            p_event_id: eventId,
+        });
+
+        if(res.error) return APIError(res.error.message);
+
+        console.log(res.data);
+        return APISuccess(res.data);
+    } catch(error) {
+        return APIError("Server error");
+    }
+}

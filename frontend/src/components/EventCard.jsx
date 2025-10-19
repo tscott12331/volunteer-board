@@ -1,3 +1,4 @@
+import { registerForEvent } from '../util/api/events';
 import styles from './EventCard.module.css';
 
 /*
@@ -59,7 +60,13 @@ export default function EventCard({
             <div className="card-body">
                 <h5 className="card-title">{title}</h5>
                 <p className="card-text">{description}</p>
-                <a href="#" className="btn btn-primary">Register</a>
+                <button 
+                    type="button" 
+                    className="btn btn-primary"
+                    onClick={() => registerForEvent(event.id)}
+                >
+                    Register
+                </button>
             </div>
             <div className="card-footer d-flex justify-content-between">
                 <span>{startDate.toLocaleDateString()}</span>
