@@ -1,50 +1,50 @@
 import { useState } from 'react';
-import OpeningCard from './OpeningCard';
+import EventCard from './EventCard';
 import styles from './VolunteerDashboard.module.css';
-import ProjectInfoModal from './ProjectInfoModal';
+import EventInfoModal from './EventInfoModal';
 
 export default function VolunteerDashboard() {
-    const [openings, setOpenings] = useState([
+    const [events, setEvents] = useState([
     {
         title: "Park Cleanup",
         description: "Come help us clean up the park...",
-        image: "/placeholder.svg",
-        date: new Date("December 12, 2025"),
+        image_url: "/placeholder.svg",
+        start_at: new Date("December 12, 2025"),
     },{
         title: "Park Cleanup",
         description: "Come help us clean up the park...",
-        image: "/placeholder.svg",
-        date: new Date("December 13, 2025"),
+        image_url: "/placeholder.svg",
+        start_at: new Date("December 13, 2025"),
     },{
         title: "Park Cleanup",
         description: "Come help us clean up the park...",
-        image: "/placeholder.svg",
-        date: new Date("August 12, 2025"),
+        image_url: "/placeholder.svg",
+        start_at: new Date("August 12, 2025"),
     },{
         title: "Park Cleanup",
         description: "Come help us clean up the park...",
-        image: "/placeholder.svg",
-        date: new Date("July 28, 2025"),
+        image_url: "/placeholder.svg",
+        start_at: new Date("July 28, 2025"),
     },{
         title: "Park Cleanup",
         description: "Come help us clean up the park...",
-        image: "/placeholder.svg",
-        date: new Date("December 12, 2025"),
+        image_url: "/placeholder.svg",
+        start_at: new Date("December 12, 2025"),
     },{
         title: "Park Cleanup",
         description: "Come help us clean up the park...",
-        image: "/placeholder.svg",
-        date: new Date("December 12, 2025"),
+        image_url: "/placeholder.svg",
+        start_at: new Date("December 12, 2025"),
     },{
         title: "Park Cleanup",
         description: "Come help us clean up the park...",
-        image: "/placeholder.svg",
-        date: new Date("December 12, 2025"),
+        image_url: "/placeholder.svg",
+        start_at: new Date("December 12, 2025"),
     },{
         title: "Park Cleanup",
         description: "Come help us clean up the park...",
-        image: "/placeholder.svg",
-        date: new Date("December 12, 2025"),
+        image_url: "/placeholder.svg",
+        start_at: new Date("December 12, 2025"),
     },
     ]);
 
@@ -76,7 +76,7 @@ export default function VolunteerDashboard() {
                 <input 
                     type="text" 
                     className="form-control" 
-                    placeholder="Search for openings"
+                    placeholder="Search for events"
                     aria-label="Text input with segmented dropdown button"
                 />
                 <button type="button" className="btn btn-primary">Search</button>
@@ -86,37 +86,31 @@ export default function VolunteerDashboard() {
                     onChange={onDateChange}
                 />
             </div>
-            <div className={"d-grid gap-3 mt-4 " + styles.openingsWrappers}>
+            <div className={"d-grid gap-3 mt-4 " + styles.eventsWrappers}>
                 {
-                    openings.length > 0 ?
+                    events.length > 0 ?
                         dateFilter ?
-                        openings.filter(o => datesMatch(o.date, dateFilter)).map((o, i) =>
-                            <OpeningCard 
-                            title={o.title} 
-                            description={o.description}
-                            image={o.image}
-                            date={o.date}
+                        events.filter(e => datesMatch(e.date, dateFilter)).map((e, i) =>
+                            <EventCard 
+                            event={e}
                             onMoreInfo={(project) => setSelectedProject(project)}
                             key={i}
                             />
                         )
                         :
-                        openings.map((o, i) =>
-                            <OpeningCard 
-                            title={o.title} 
-                            description={o.description}
-                            image={o.image}
-                            date={o.date}
+                        events.map((e, i) =>
+                            <EventCard 
+                            event={e}
                             onMoreInfo={(project) => setSelectedProject(project)}
                             key={i}
                             />
                         )
                     :
-                    <p className="text-center">No openings available</p>
+                    <p className="text-center">No events available</p>
                 }
             </div>
         </div>
-        <ProjectInfoModal project={selectedProject} />
+        <EventInfoModal event={selectedProject} />
         </>
     )
 }

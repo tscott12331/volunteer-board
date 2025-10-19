@@ -1,11 +1,11 @@
-export default function ProjectInfoModal({
-    project,
+export default function EventInfoModal({
+    event,
 }) {
-    const title = project?.title ?? "Title";
-    const description = project?.description ?? "Description";
-    const image = project?.image ?? null;
-    const date = project?.date ?? new Date();
-    const org = project?.org ?? "Organization";
+    const title = event?.title ?? "Title";
+    const description = event?.description ?? "Description";
+    const image_url = event?.image_url ?? null;
+    const start_at = event?.date ?? new Date();
+    const org = event?.org ?? "Organization";
 
 
     return (
@@ -19,11 +19,11 @@ export default function ProjectInfoModal({
                 <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
               <div className="modal-body">
-                <img className="img-thumbnail" src={image} />
+                <img className="img-thumbnail" src={image_url} />
                 <p className="my-3">{description}</p>
                 <p className="mb-1">Posted by: {org}</p>
-                <p className="mb-1">Date: {date.toLocaleDateString()}</p>
-                <p className="mb-1">Time: {date.toLocaleTimeString()}</p>
+                <p className="mb-1">Date: {start_at.toLocaleDateString()}</p>
+                <p className="mb-1">Time: {start_at.toLocaleTimeString()}</p>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">Close</button>

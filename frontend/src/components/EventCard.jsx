@@ -1,12 +1,10 @@
-import styles from './OpeningCard.module.css';
+import styles from './EventCard.module.css';
 
-export default function OpeningCard({
-    title,
-    description,
-    image,
-    date,
+export default function EventCard({
+    event,
     onMoreInfo,
 }) {
+    const { title, description, image_url, start_at } = event
     return (
         <>
         <div className={"card " + styles.openingCard}>
@@ -14,7 +12,7 @@ export default function OpeningCard({
                 <button 
                     type="button"
                     className="btn btn-outline-primary"
-                    onClick={() => onMoreInfo?.({title, description, image, date})}
+                    onClick={() => onMoreInfo?.(event)}
 
                     data-bs-toggle="modal" 
                     data-bs-target="#info-modal"
@@ -22,15 +20,15 @@ export default function OpeningCard({
                 More Info
                 </button>
             </div>
-            <img src={image} className={"card-img-top " + styles.cardImg} alt="Project photos" />
+            <img src={image_url} className={"card-img-top " + styles.cardImg} alt="Project photos" />
             <div className="card-body">
                 <h5 className="card-title">{title}</h5>
                 <p className="card-text">{description}</p>
                 <a href="#" className="btn btn-primary">Register</a>
             </div>
             <div className="card-footer d-flex justify-content-between">
-                <span>{date.toLocaleDateString()}</span>
-                <span>{date.toLocaleTimeString()}</span>
+                <span>{start_at.toLocaleDateString()}</span>
+                <span>{start_at.toLocaleTimeString()}</span>
             </div>
         </div>
         </>
