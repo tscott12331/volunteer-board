@@ -15,23 +15,14 @@ export async function signup(previousState, formData) {
         let res = await supabase.auth.signUp({
             email,
             password,
+            options: {
+                data: {
+                    is_organization: isOrg
+                }
+            }
         })
 
         if(res.error) return APIError(res.error.message);
-        
-        // const id = res.data.user.id;
-        //
-        // setting account type not working at the moment
-        // if(isOrg) {
-        //     res = await supabase.from('profiles')
-        //                     .update({
-        //                         'account': 'organization'
-        //                     })
-        //                     .eq('id', id);
-        //     console.log(res);
-        //
-        //     if(res.error) return APIError(res.error.message);
-        // }
 
         return APISuccess({
                 message: "Please check your inbox for a confirmation email",

@@ -1,0 +1,51 @@
+.profileContainer {
+    background: #2c3034;
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    max-width: 800px;
+    border: 1px solid #3a3f44;
+}
+
+.title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin-bottom: 2rem;
+    color: #f8f9fa;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.label {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.logoPreview {
+    width: 100px;
+    height: 100px;
+    border: 2px dashed #495057;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+    background: #212529;
+}
+
+.logoImage {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
