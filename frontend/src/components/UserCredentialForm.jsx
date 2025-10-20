@@ -1,7 +1,9 @@
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../util/api/supabaseClient';
+import { fetchProfile } from '../util/api/profile';
 import { signin, signup } from '../util/api/auth';
 import styles from './UserCredentialForm.module.css';
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 
 /*
     * Credential from used for signing in or signing up
@@ -28,10 +30,49 @@ export default function UserCredentialForm({
     // isPending: pending status of active action call
     const [state, action, isPending] = useActionState(formAction, undefined);
 
-    if(isSignin && state?.success) {
-        // navigate to home page on successful signin
-        navigate('/');
-    }
+    useEffect(() => {
+        if (!state?.success) return;
+        (async () => {
+            if (isSignin) {
+                // Decide immediately based on user profile
+                const { data: { session } } = await supabase.auth.getSession();
+                const user = session?.user;
+                if (!user) {
+                    navigate('/');
+                    return;
+                }
+                const isOrg = !!user.user_metadata?.is_organization;
+                if (isOrg) {
+                    navigate('/');
+                    return;
+                }
+                try {
+                    const res = await fetchProfile(user.id);
+                    const profile = res.success ? res.data : null;
+                    let complete = false;
+                    if (profile) {
+                        if (Object.prototype.hasOwnProperty.call(profile, 'onboarding_complete')) {
+                            complete = profile.onboarding_complete === true;
+                        } else {
+                            complete = !!(profile.full_name || profile.display_name);
+                        }
+                    }
+                    if (!complete) {
+                        navigate('/volunteer-setup');
+                    } else {
+                        navigate('/');
+                    }
+                } catch {
+                    navigate('/volunteer-setup');
+                }
+                return;
+            }
+            // After signup, route based on org checkbox state at submit time
+            const isOrgEl = document.getElementById('organization-check-input');
+            const isOrg = !!isOrgEl?.checked;
+            navigate(isOrg ? '/org-setup' : '/volunteer-setup');
+        })();
+    }, [state?.success, isSignin, navigate]);
 
     return (
         <div className="d-flex flex-column gap-5 align-items-center justify-content-start flex-grow-1 ">
