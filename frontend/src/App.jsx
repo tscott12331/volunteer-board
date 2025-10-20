@@ -2,6 +2,8 @@ import './App.css'
 import 'bootstrap';
 import { BrowserRouter as Router, Routes, Route } from 'react-router'
 import VolunteerDashboard from './components/VolunteerDashboard'
+import OrganizationDashboard from './components/OrganizationDashboard'
+import OrgSetup from './components/OrgSetup'
 import UserCredentialForm from './components/UserCredentialForm';
 import Navbar from './components/Navbar';
 import ProfilePage from './components/ProfilePage';
@@ -31,11 +33,29 @@ function App() {
         return () => subscription.unsubscribe();
     }, []);
 
+    useEffect(() => {
+        const logNavigation = (event) => {
+            console.log('Navigation or reload detected:', event.type, event);
+        };
+        window.addEventListener('beforeunload', logNavigation);
+        window.addEventListener('unload', logNavigation);
+        window.addEventListener('popstate', logNavigation);
+        window.addEventListener('hashchange', logNavigation);
+        return () => {
+            window.removeEventListener('beforeunload', logNavigation);
+            window.removeEventListener('unload', logNavigation);
+            window.removeEventListener('popstate', logNavigation);
+            window.removeEventListener('hashchange', logNavigation);
+        };
+    }, []);
+
     return (
         <Router>
             <Navbar user={session?.user}/>
             <Routes>
                 <Route path="/" element={<VolunteerDashboard user={session?.user} />} />
+                <Route path="/org-setup" element={<OrgSetup user={session?.user} />} />
+                <Route path="/org-dashboard" element={<OrganizationDashboard user={session?.user} />} />
                 <Route path="/profile/:userId" element={<ProfilePage />} />
                 <Route path="/signup" element={<UserCredentialForm isSignin={false} />} />
                 <Route path="/signin" element={<UserCredentialForm isSignin={true} />} />

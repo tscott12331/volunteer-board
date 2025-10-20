@@ -1,0 +1,19 @@
+.eventsHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin: 0;
+    color: #f8f9fa;
+}
+
+.eventsContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
