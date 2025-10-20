@@ -150,7 +150,6 @@ export default function OrgEventCard({ event, onEdit, onEventChanged, onEventDel
                 <CheckInModal
                     event={event}
                     onClose={() => setShowCheckIn(false)}
-                    onCheckInComplete={onEventChanged}
                 />
             )}
         </>

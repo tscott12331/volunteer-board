@@ -33,6 +33,22 @@ function App() {
         return () => subscription.unsubscribe();
     }, []);
 
+    useEffect(() => {
+        const logNavigation = (event) => {
+            console.log('Navigation or reload detected:', event.type, event);
+        };
+        window.addEventListener('beforeunload', logNavigation);
+        window.addEventListener('unload', logNavigation);
+        window.addEventListener('popstate', logNavigation);
+        window.addEventListener('hashchange', logNavigation);
+        return () => {
+            window.removeEventListener('beforeunload', logNavigation);
+            window.removeEventListener('unload', logNavigation);
+            window.removeEventListener('popstate', logNavigation);
+            window.removeEventListener('hashchange', logNavigation);
+        };
+    }, []);
+
     return (
         <Router>
             <Navbar user={session?.user}/>

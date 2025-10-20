@@ -244,54 +244,62 @@ export async function deleteEvent(eventId) {
     }
 }
 
-// Fetch registrations for a specific event
-export async function fetchEventRegistrations(eventId) {
+/**
+ * Fetch registrations for a specific event using Supabase DB function with pagination and status filter
+ * @param {string} eventId - UUID of the event
+ * @param {Object} options - { status, limit, offset }
+ * @returns {Promise<APISuccess|APIError>}
+ */
+export async function fetchEventRegistrations(eventId, options = {}) {
     if (!eventId) return APIError("Event ID is undefined");
-
+    const { status = null, limit = 50, offset = 0 } = options;
     try {
-        const res = await supabase
-            .from('event_registrations')
-            .select(`
-                id,
-                status,
-                created_at,
-                user_id,
-                profiles (
-                    full_name,
-                    display_name,
-                    avatar_url
-                )
-            `)
-            .eq('event_id', eventId)
-            .order('created_at', { ascending: true });
-
-        if (res.error) return APIError(res.error.message);
-
-        return APISuccess(res.data);
+        // If RLS is enabled, get JWT from Supabase auth
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+            console.error('Supabase session error:', sessionError);
+        }
+        const accessToken = sessionData?.session?.access_token;
+        // Call the database function via RPC
+        const { data, error } = await supabase.rpc('get_event_registrants', {
+            event_uuid: eventId,
+            status_filter: status,
+            limit_rows: limit,
+            offset_rows: offset
+        }, {
+            ...(accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : {})
+        });
+        if (error) {
+            console.error('Supabase RPC error:', error);
+            return APIError(error.message || 'Failed to fetch registrants');
+        }
+        return APISuccess(data || []);
     } catch (error) {
+        console.error('fetchEventRegistrations exception:', error);
         return APIError("Server error");
     }
 }
 
 // Update registration status (check in/out)
-export async function updateRegistrationStatus(registrationId, status) {
+export async function updateRegistrationStatus(registrationId, status, actingUserId = null) {
     if (!registrationId) return APIError("Registration ID is undefined");
     if (!status) return APIError("Status is undefined");
 
     try {
-        const res = await supabase
-            .from('event_registrations')
-            .update({
-                status: status,
-                updated_at: new Date().toISOString(),
-            })
-            .eq('id', registrationId)
-            .select()
-            .single();
-
-        if (res.error) return APIError(res.error.message);
-
-        return APISuccess(res.data);
+        // Get acting user ID if not provided
+        let userId = actingUserId;
+        if (!userId) {
+            const { data: sessionData } = await supabase.auth.getSession();
+            userId = sessionData?.session?.user?.id || null;
+        }
+        // Call the database function via RPC
+        const { data, error } = await supabase.rpc('update_registration_status', {
+            registration_id: registrationId,
+            new_status: status,
+            acting_user: userId
+        });
+        if (error) return APIError(error.message);
+        return APISuccess(data);
     } catch (error) {
         return APIError("Server error");
     }

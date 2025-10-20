@@ -110,3 +110,21 @@
     font-weight: 500;
     color: #f8f9fa;
 }
+
+.regTime {
+    font-size: 0.95rem;
+    color: #adb5bd;
+    margin-left: 0.5rem;
+}
+
+.statusArea {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.toast {
+    min-width: 220px;
+    font-size: 1rem;
+    z-index: 2000;
+}
