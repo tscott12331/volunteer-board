@@ -2,13 +2,15 @@ import { APIError, APISuccess } from "./api-response";
 import { supabase } from "./supabaseClient";
 
 // fetch events based on search query, start date, and end date
-export async function fetchEvents(query, startDate, endDate) {
+export async function fetchEvents(startDate, endDate, userId) {
     try {
         // call list_published_events db function
         const res = await supabase.rpc('list_published_events', {
-            q: query, // search query
-            from_ts: startDate?.toISOString(), // start date filter
-            to_ts: endDate?.toISOString(), // end date filter
+            // q: query, // search query
+            p_user_id: userId,
+            p_start_date: startDate?.toISOString(), // start date filter
+            p_end_date: endDate?.toISOString(), // end date filter
+
         });
 
         if(res.error) return APIError(res.error.message);

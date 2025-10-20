@@ -22,10 +22,11 @@ import styles from './EventCard.module.css';
             * image_url: string | null
             * created_at: string (timestamptz)
             * updated_at: string (timestamptz)
+            * is_registered
         * } | null | undefined
             * Information about the event
-        * isRegistered: boolean
-            * Whether the user has registered for event or not
+        * isNewlyRegistered: boolean
+            * Whether the user has just registered for the event or not
         * onMoreInfo: (event) => any | undefined;
             * Called when more info button is pressed
         * onRegister: (id) => any | undefined;
@@ -34,7 +35,7 @@ import styles from './EventCard.module.css';
 */
 export default function EventCard({
     event,
-    isRegistered,
+    isNewlyRegistered,
     onMoreInfo,
     onRegister,
 }) {
@@ -72,14 +73,14 @@ export default function EventCard({
                 </div>
                 <div className="d-flex flex-wrap align-items-center gap-2">
                     <button 
-                        disabled={isRegistered}
+                        disabled={event.is_registered || isNewlyRegistered}
                         type="button" 
                         className="btn btn-primary"
                         onClick={() => onRegister?.(event.id)}
                     >
                         Register
                     </button>
-                    {isRegistered &&
+                    {(event.is_registered || isNewlyRegistered) &&
                     <p className="m-0 d-inline-block text-secondary-emphasis">You are registered for this event</p>
                     }
                 </div>
