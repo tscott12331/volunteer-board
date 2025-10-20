@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { registerForEvent } from '../util/api/events';
 import styles from './EventCard.module.css';
 
@@ -23,12 +24,19 @@ import styles from './EventCard.module.css';
             * updated_at: string (timestamptz)
         * } | null | undefined
             * Information about the event
-        * onMoreInfo: (event) => void | undefined;
+        * isRegistered: boolean
+            * Whether the user has registered for event or not
+        * onMoreInfo: (event) => any | undefined;
             * Called when more info button is pressed
+        * onRegister: (id) => any | undefined;
+            * Called when register button is clicked
+            * Handles registration logic
 */
 export default function EventCard({
     event,
+    isRegistered,
     onMoreInfo,
+    onRegister,
 }) {
     const { title, description, image_url, start_at } = event
     const startDate = new Date(start_at);
@@ -62,13 +70,19 @@ export default function EventCard({
                     <h5 className="card-title">{title}</h5>
                     <p className="card-text">{description}</p>
                 </div>
-                <button 
-                    type="button" 
-                    className="btn btn-primary"
-                    onClick={() => registerForEvent(event.id)}
-                >
-                    Register
-                </button>
+                <div className="d-flex flex-wrap align-items-center gap-2">
+                    <button 
+                        disabled={isRegistered}
+                        type="button" 
+                        className="btn btn-primary"
+                        onClick={() => onRegister?.(event.id)}
+                    >
+                        Register
+                    </button>
+                    {isRegistered &&
+                    <p className="m-0 d-inline-block text-secondary-emphasis">You are registered for this event</p>
+                    }
+                </div>
             </div>
             <div className="card-footer d-flex justify-content-between">
                 <span>{startDate.toLocaleDateString()}</span>
