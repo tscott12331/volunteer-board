@@ -25,10 +25,11 @@ import { formatDateAtTime } from "../util/date";
             * image_url: string | null
             * created_at: string (timestamptz)
             * updated_at: string (timestamptz)
+            * is_registered
         * } | null | undefined
             * Information about the event
-        * isRegistered: boolean
-            * Whether the user has registered for this event or not
+        * isNewlyRegistered: boolean
+            * Whether the user has just registered for the event or not
         * onRegister: (id) => any | undefined
             * Called when register button is clicked
             * Handles logic for registering for an event
@@ -36,7 +37,7 @@ import { formatDateAtTime } from "../util/date";
 export default function EventInfoModal({
     id,
     event,
-    isRegistered,
+    isNewlyRegistered,
     onRegister,
 }) {
     // convert date strings into date objects
@@ -89,7 +90,7 @@ export default function EventInfoModal({
               <div className="modal-footer d-flex flex-row-reverse justify-content-between gap-1">
                 <div>
                     <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    {!isRegistered &&
+                    {(!event.is_registered && !isNewlyRegistered) &&
                     <button 
                         type="button" 
                         className="btn btn-primary ms-2"
@@ -99,7 +100,7 @@ export default function EventInfoModal({
                     </button>
                     }
                 </div>
-                {isRegistered &&
+                {(event.is_registered || isNewlyRegistered) &&
                 <p className="m-0 d-inline-block text-secondary-emphasis">You are registered for this event</p>
                 }
               </div>

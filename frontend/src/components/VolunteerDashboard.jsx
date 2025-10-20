@@ -35,7 +35,7 @@ export default function VolunteerDashboard({
             </ul>
             <div className="tab-content" id="myTabContent">
                 <div className="tab-pane fade show active" id="discover-tab-pane" role="tabpanel" aria-labelledby="home-tab" tabIndex="0">
-                    <DiscoverPanel />
+                    <DiscoverPanel user={user} />
                 </div>
                 {user &&
                 <>
@@ -43,7 +43,7 @@ export default function VolunteerDashboard({
                     <RegistrationsPanel user={user} />
                 </div>
                 <div className="tab-pane fade" id="following-tab-pane" role="tabpanel" aria-labelledby="contact-tab" tabIndex="0">
-                    <FollowingPanel />
+                    <FollowingPanel user={user}/>
                 </div>
                 </>
                 }

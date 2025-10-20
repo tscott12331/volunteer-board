@@ -39,7 +39,7 @@ export default function RegistrationsPanel({
             {
             events.map(e =>
                 <RegisteredEventCard 
-                    key={e.id}
+                    key={e.event_id}
                     event={e} 
                     onView={(e) => setSelectedEvent(e)}
                 />

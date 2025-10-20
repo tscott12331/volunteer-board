@@ -8,8 +8,14 @@ import EventInfoModal from "./EventInfoModal";
 /*
     * Panel in the volunteer dashboard to view and register for available events
     * Users can filter by search, start date, and end date
+    * props:
+        * user?
+            * Supabase Auth user object
+            * Currently logged in user
 */
-export default function DiscoverPanel() {
+export default function DiscoverPanel({
+    user
+}) {
     // available events based on search and date filters
     const [events, setEvents] = useState([]);
 
@@ -54,6 +60,11 @@ export default function DiscoverPanel() {
     const search = () => {
         setSearchQuery(searchValue.length > 0 ? searchValue : undefined);
     }
+
+    const filterEventBySearch = (e, query) => {
+        if(!query) return true;
+        return e.title.toLowerCase().includes(query.toLowerCase());
+    }
     
 
     const handleRegistration = async (id) => {
@@ -65,13 +76,13 @@ export default function DiscoverPanel() {
 
     useEffect(() => {
         // fetch events based on a search query, start date, and end date
-        fetchEvents(searchQuery, startDate, endDate).then(res => {
+        fetchEvents(startDate, endDate, user?.id).then(res => {
             if(res.success) {
                 // set events on successful fetch
                 setEvents(res.data);
             }
         })
-    }, [searchQuery, startDate, endDate]);
+    }, [user, startDate, endDate]);
 
     return (
             <>
@@ -118,12 +129,12 @@ export default function DiscoverPanel() {
             events.length > 0 ?
             <div className={"d-grid gap-3 mt-4 " + styles.eventsWrappers}>
             {
-                events.map(e =>
+                events.filter(e => filterEventBySearch(e, searchQuery)).map(e =>
                 <EventCard 
                 event={e}
                 onMoreInfo={(event) => setSelectedEvent(event)}
                 onRegister={handleRegistration}
-                isRegistered={registeredEvents[e.id] ?? false}
+                isNewlyRegistered={registeredEvents[e.id] ?? false}
                 key={e.id}
                 />
                 )
@@ -135,7 +146,7 @@ export default function DiscoverPanel() {
         <EventInfoModal 
             id="info-modal" 
             event={selectedEvent} 
-            isRegistered={registeredEvents[selectedEvent?.id] ?? false}
+            isNewlyRegistered={registeredEvents[selectedEvent?.id] ?? false}
             onRegister={handleRegistration}
         />
         </>

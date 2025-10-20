@@ -2,13 +2,15 @@ import { APIError, APISuccess } from "./api-response";
 import { supabase } from "./supabaseClient";
 
 // fetch events based on search query, start date, and end date
-export async function fetchEvents(query, startDate, endDate) {
+export async function fetchEvents(startDate, endDate, userId) {
     try {
         // call list_published_events db function
         const res = await supabase.rpc('list_published_events', {
-            q: query, // search query
-            from_ts: startDate?.toISOString(), // start date filter
-            to_ts: endDate?.toISOString(), // end date filter
+            // q: query, // search query
+            p_user_id: userId,
+            p_start_date: startDate?.toISOString(), // start date filter
+            p_end_date: endDate?.toISOString(), // end date filter
+
         });
 
         if(res.error) return APIError(res.error.message);
@@ -24,29 +26,16 @@ export async function fetchRegisteredEvents(userId) {
     if(!userId) return APIError("User ID is undefined");
 
     try {
-        // fetch all cols from events on the condition that
-        // an associated event_registration exists that matches
-        // the given userId
-        const res = await supabase.from('event_registrations')
-                            .select(`
-                                    user_id,
-                                    events ( * )
-                                `).eq('user_id', userId);
+        // use supabase rpc list_user_registered_events to get
+        // events that user {userId} id registered for
+        const res = await supabase.rpc('list_user_registered_events', {
+            p_user_id: userId,
+            p_only_upcoming: false,
+        });
 
         if(res.error) return APIError(res.error.message);
 
-        // data from join comes back as
-        // [{
-            // user_id
-            // events: {
-                // event data...
-            // }
-        // }]
-        const events = res.data.map(o => ({
-            ...o.events
-        }));
-
-        return APISuccess(events);
+        return APISuccess(res.data);
     } catch(error) {
         return APIError("Server error");
     }
