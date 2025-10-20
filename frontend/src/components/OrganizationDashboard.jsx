@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import styles from './OrganizationDashboard.module.css';
 import OrgEventsPanel from './OrgEventsPanel';
 import OrgProfilePanel from './OrgProfilePanel';
