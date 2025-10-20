@@ -84,7 +84,7 @@ export default function EventInfoModal({
                 }
                 <p className="mb-1"><span className="text-body-emphasis">Starts:</span> {formatDateAtTime(startDate)}</p>
                 <p className="mb-1"><span className="text-body-emphasis">Ends:</span> {formatDateAtTime(endDate)}</p>
-                <p className="mb-1"><span className="text-body-emphasis">Volunteer capacity:</span> {event.capacity}</p>
+                <p className="mb-1"><span className="text-body-emphasis">Spots remaining:</span> {event.capacity}</p>
               </div>
               <div className="modal-footer d-flex flex-row-reverse justify-content-between gap-1">
                 <div>
