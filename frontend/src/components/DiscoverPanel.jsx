@@ -60,6 +60,11 @@ export default function DiscoverPanel({
     const search = () => {
         setSearchQuery(searchValue.length > 0 ? searchValue : undefined);
     }
+
+    const filterEventBySearch = (e, query) => {
+        if(!query) return true;
+        return e.title.toLowerCase().includes(query.toLowerCase());
+    }
     
 
     const handleRegistration = async (id) => {
@@ -124,7 +129,7 @@ export default function DiscoverPanel({
             events.length > 0 ?
             <div className={"d-grid gap-3 mt-4 " + styles.eventsWrappers}>
             {
-                events.map(e =>
+                events.filter(e => filterEventBySearch(e, searchQuery)).map(e =>
                 <EventCard 
                 event={e}
                 onMoreInfo={(event) => setSelectedEvent(event)}
