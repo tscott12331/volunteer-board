@@ -5,6 +5,9 @@ import { formatDateAtTime } from "../util/date";
 /*
     * Modal popup displaying more detailed information about an event
     * props:
+        * id:
+            * The id of the modal dom element that will be referenced
+            * by the corresponding button that opens it
         * event: {
             * id: string
             * org_id: string
@@ -24,10 +27,17 @@ import { formatDateAtTime } from "../util/date";
             * updated_at: string (timestamptz)
         * } | null | undefined
             * Information about the event
+        * isRegistered: boolean
+            * Whether the user has registered for this event or not
+        * onRegister: (id) => any | undefined
+            * Called when register button is clicked
+            * Handles logic for registering for an event
 */
 export default function EventInfoModal({
     id,
     event,
+    isRegistered,
+    onRegister,
 }) {
     // convert date strings into date objects
     const start_at = event?.start_at ?? new Date();
@@ -74,11 +84,24 @@ export default function EventInfoModal({
                 }
                 <p className="mb-1"><span className="text-body-emphasis">Starts:</span> {formatDateAtTime(startDate)}</p>
                 <p className="mb-1"><span className="text-body-emphasis">Ends:</span> {formatDateAtTime(endDate)}</p>
-                <p className="mb-1"><span className="text-body-emphasis">Volunteer capacity:</span> {event.capacity}</p>
+                <p className="mb-1"><span className="text-body-emphasis">Spots remaining:</span> {event.capacity}</p>
               </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" className="btn btn-primary">Register</button>
+              <div className="modal-footer d-flex flex-row-reverse justify-content-between gap-1">
+                <div>
+                    <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    {!isRegistered &&
+                    <button 
+                        type="button" 
+                        className="btn btn-primary ms-2"
+                        onClick={() => onRegister?.(event.id)}
+                    >
+                        Register
+                    </button>
+                    }
+                </div>
+                {isRegistered &&
+                <p className="m-0 d-inline-block text-secondary-emphasis">You are registered for this event</p>
+                }
               </div>
             </div>
             :

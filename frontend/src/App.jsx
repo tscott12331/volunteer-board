@@ -35,7 +35,7 @@ function App() {
         <Router>
             <Navbar user={session?.user}/>
             <Routes>
-                <Route path="/" element={<VolunteerDashboard />} />
+                <Route path="/" element={<VolunteerDashboard user={session?.user} />} />
                 <Route path="/profile/:userId" element={<ProfilePage />} />
                 <Route path="/signup" element={<UserCredentialForm isSignin={false} />} />
                 <Route path="/signin" element={<UserCredentialForm isSignin={true} />} />

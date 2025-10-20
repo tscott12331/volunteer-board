@@ -1,7 +1,7 @@
 import styles from './DiscoverPanel.module.css';
 
 import { useEffect, useState } from "react";
-import { fetchEvents } from "../util/api/events";
+import { fetchEvents, registerForEvent } from "../util/api/events";
 import EventCard from "./EventCard";
 import EventInfoModal from "./EventInfoModal";
 
@@ -24,6 +24,8 @@ export default function DiscoverPanel() {
     // the selected event will be displayed on the modal popup when
     // the more info button is selected
     const [selectedEvent, setSelectedEvent] = useState(undefined);
+    // hash containing the ids of registered events
+    const [registeredEvents, setRegisteredEvents] = useState({});
 
     // set date filter to proper date object when input is changed
     const onDateFilterChange = (e, setFilter) => {
@@ -51,6 +53,14 @@ export default function DiscoverPanel() {
     // update search filter
     const search = () => {
         setSearchQuery(searchValue.length > 0 ? searchValue : undefined);
+    }
+    
+
+    const handleRegistration = async (id) => {
+        const res = await registerForEvent(id);
+        if(res.success) {
+            setRegisteredEvents((re) => ({...re, [id]: true}));
+        }
     }
 
     useEffect(() => {
@@ -112,6 +122,8 @@ export default function DiscoverPanel() {
                 <EventCard 
                 event={e}
                 onMoreInfo={(event) => setSelectedEvent(event)}
+                onRegister={handleRegistration}
+                isRegistered={registeredEvents[e.id] ?? false}
                 key={e.id}
                 />
                 )
@@ -120,7 +132,12 @@ export default function DiscoverPanel() {
             :
             <p className="text-center mt-4">No events available</p>
             }
-        <EventInfoModal id="info-modal" event={selectedEvent} />
+        <EventInfoModal 
+            id="info-modal" 
+            event={selectedEvent} 
+            isRegistered={registeredEvents[selectedEvent?.id] ?? false}
+            onRegister={handleRegistration}
+        />
         </>
     );
 }
