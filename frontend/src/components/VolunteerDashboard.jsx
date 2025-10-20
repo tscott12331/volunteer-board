@@ -43,7 +43,7 @@ export default function VolunteerDashboard({
                     <RegistrationsPanel user={user} />
                 </div>
                 <div className="tab-pane fade" id="following-tab-pane" role="tabpanel" aria-labelledby="contact-tab" tabIndex="0">
-                    <FollowingPanel />
+                    <FollowingPanel user={user}/>
                 </div>
                 </>
                 }
