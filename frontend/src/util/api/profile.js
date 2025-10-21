@@ -68,6 +68,24 @@ export async function upsertProfile(userId, data) {
             .single();
 
         if (error) return APIError(error.message);
+
+        // Option A: Persist availability via RPC on the backend (preferred)
+        if (data.availability && typeof data.availability === 'object') {
+            try {
+                const { error: rpcErr } = await supabase.rpc('save_volunteer_availability', {
+                    p_user_id: userId,
+                    p_availability: data.availability,
+                    p_timezone: data.timezone ?? null,
+                });
+                if (rpcErr) {
+                    // Don't block profile save if RPC missing or fails; log for diagnostics
+                    console.warn('save_volunteer_availability RPC error:', rpcErr.message || rpcErr);
+                }
+            } catch (e) {
+                console.warn('save_volunteer_availability RPC exception:', e);
+            }
+        }
+
         return APISuccess(upserted);
     } catch (error) {
         return APIError('Server error');
