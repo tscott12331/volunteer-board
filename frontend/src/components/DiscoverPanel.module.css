@@ -101,6 +101,10 @@
     border-color: rgba(102, 126, 234, 0.3);
 }
 
+.eventCardOrgName:hover {
+    text-decoration: underline !important;
+}
+
 /* Registered Event Styling */
 .eventCardRegistered {
     background: rgba(25, 135, 84, 0.05);

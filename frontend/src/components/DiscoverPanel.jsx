@@ -375,7 +375,12 @@ export default function DiscoverPanel({ user }) {
                                                 {orgData?.name?.[0] || '?'}
                                             </div>
                                         )}
-                                        <small className="text-muted">{orgData?.name || 'Loading...'}</small>
+                                        <Link 
+                                            to={`/org/${orgData?.slug}`}
+                                            className={"text-muted text-decoration-none " + styles.eventCardOrgName}
+                                        >
+                                            <small>{orgData?.name || 'Loading...'}</small>
+                                        </Link>
                                     </div>
                                     
                                     {/* Title */}
