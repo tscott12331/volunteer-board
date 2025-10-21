@@ -3,6 +3,7 @@ import styles from './DiscoverPanel.module.css';
 import { useEffect, useState } from "react";
 import { fetchEvents, registerForEvent, fetchOrganization } from "../util/api/events";
 import { formatDateAtTime } from '../util/date';
+import { Link } from 'react-router';
 
 /*
     * Panel in the volunteer dashboard to view and register for available events
@@ -275,7 +276,12 @@ export default function DiscoverPanel({ user }) {
                                     <img src={selectedOrg.logo_url || selectedOrg.image_url} alt={selectedOrg?.name} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }} />
                                 ) : null}
                                 <div className="flex-grow-1">
-                                    <div className="text-body-emphasis">{selectedOrg?.name}</div>
+                                    <Link 
+                                        className={"text-body-emphasis text-decoration-none link-offset-1 " + styles.orgName}
+                                        to={`/org/${selectedOrg?.slug}`}
+                                    >
+                                    {selectedOrg?.name}
+                                    </Link>
                                     <div className="d-flex align-items-center gap-2">
                                         <h4 className="mb-0">{selectedEvent.title}</h4>
                                         {(selectedEvent.is_registered || registeredEvents[selectedEvent.id]) && (

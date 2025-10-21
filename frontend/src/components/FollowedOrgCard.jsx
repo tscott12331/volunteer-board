@@ -19,7 +19,7 @@ export default function FollowedOrgCard({
     return (
         <div 
             className={"d-flex flex-wrap justify-content-between align-items-center gap-3 bg-body-secondary shadow-sm rounded-3 text-decoration-none " + styles.card}
-            onClick={() => navigate(`/orgs/${org.slug}`)}
+            onClick={() => navigate(`/org/${org.slug}`)}
         >
             <div className="d-flex align-content-center gap-3">
                 <img className={"img-fluid d-inline-block " + styles.logo} src={org.logo_url} />
