@@ -24,11 +24,17 @@ export default function DiscoverPanel({ user }) {
     // search input state
     const  [searchValue, setSearchValue] = useState("");
 
+    // view mode: 'list' or 'grid'
+    const [viewMode, setViewMode] = useState('list');
+
     // the selected event will be displayed in the detail panel on the right
     const [selectedEvent, setSelectedEvent] = useState(undefined);
     const [selectedOrg, setSelectedOrg] = useState(undefined);
     // hash containing the ids of registered events
     const [registeredEvents, setRegisteredEvents] = useState({});
+    
+    // Store organization data for grid view
+    const [orgDataMap, setOrgDataMap] = useState({});
 
     // set date filter to proper date object when input is changed
     const onDateFilterChange = (e, setFilter) => {
@@ -86,6 +92,20 @@ export default function DiscoverPanel({ user }) {
                 console.log('DiscoverPanel fetched events:', res.data);
                 // set events on successful fetch
                 setEvents(res.data);
+                
+                // Fetch organization data for all events
+                res.data.forEach(event => {
+                    if (event.org_id && !orgDataMap[event.org_id]) {
+                        fetchOrganization(event.org_id).then(orgRes => {
+                            if (orgRes.success) {
+                                setOrgDataMap(prev => ({
+                                    ...prev,
+                                    [event.org_id]: orgRes.data
+                                }));
+                            }
+                        });
+                    }
+                });
             }
         })
     }, [user, startDate, endDate]);
@@ -129,8 +149,28 @@ export default function DiscoverPanel({ user }) {
 
     return (
             <>
-            <h2 className="mb-4 fw-bold">Discover</h2>
-            <div className="input-group">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <h2 className="mb-0 fw-bold text-white">Discover</h2>
+                <div className="btn-group" role="group" aria-label="View mode">
+                    <button 
+                        type="button" 
+                        className={`btn btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                        onClick={() => setViewMode('list')}
+                        title="List view"
+                    >
+                        <i className="bi bi-list-ul"></i>
+                    </button>
+                    <button 
+                        type="button" 
+                        className={`btn btn-sm ${viewMode === 'grid' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                        onClick={() => setViewMode('grid')}
+                        title="Grid view"
+                    >
+                        <i className="bi bi-grid-3x2"></i>
+                    </button>
+                </div>
+            </div>
+            <div className="input-group mb-4" style={{ maxWidth: '800px' }}>
                 <input 
                     type="text" 
                     className="form-control" 
@@ -140,7 +180,10 @@ export default function DiscoverPanel({ user }) {
                     onChange={onSearchInputChange}
                     onKeyDown={onSearchInputKeyDown}
                 />
-                <button className="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Filter</button>
+                <button className="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i className="bi bi-funnel me-2"></i>
+                    Filter
+                </button>
                 <ul className="dropdown-menu">
                     <li>
                         <div className="dropdown-item d-flex gap-2 justify-content-between">
@@ -166,25 +209,38 @@ export default function DiscoverPanel({ user }) {
                         </div>
                     </li>
                 </ul>
-                <button type="button" className="btn btn-primary" onClick={search}>Search</button>
+                <button type="button" className="btn btn-primary" onClick={search}>
+                    <i className="bi bi-search me-2"></i>
+                    Search
+                </button>
             </div>
             {
             events.length > 0 ?
+            viewMode === 'list' ? (
             <div className={"row mt-4 " + styles.eventsWrappers}>
                 <div className="col-md-4">
-                    <div className="list-group">
+                    <div className={styles.eventList}>
                         {events.filter(e => filterEventBySearch(e, searchQuery)).map(e => (
                             <button
                                 key={e.id}
                                 type="button"
-                                className={"list-group-item list-group-item-action " + (selectedEvent?.id === e.id ? 'active' : '')}
+                                className={`${styles.eventListItem} ${selectedEvent?.id === e.id ? styles.active : ''}`}
                                 onClick={() => setSelectedEvent(e)}
                             >
-                                <div className="d-flex w-100 justify-content-between">
-                                    <h6 className="mb-1">{e.title}</h6>
-                                    <small>{new Date(e.start_at).toLocaleDateString()}</small>
+                                <div className="d-flex w-100 justify-content-between align-items-start mb-2">
+                                    <h6 className="mb-0 fw-semibold">{e.title}</h6>
+                                    <small className={styles.dateText}>{new Date(e.start_at).toLocaleDateString()}</small>
                                 </div>
-                                <small className="text-muted">{hoursBetween(e.start_at, e.end_at)} hrs</small>
+                                <div className="d-flex align-items-center gap-2 mb-2">
+                                    <i className="bi bi-clock text-muted" style={{ fontSize: '0.875rem' }}></i>
+                                    <small className="text-muted">{hoursBetween(e.start_at, e.end_at)} hrs</small>
+                                </div>
+                                {e.location && (
+                                    <div className="d-flex align-items-center gap-2">
+                                        <i className="bi bi-geo-alt text-muted" style={{ fontSize: '0.875rem' }}></i>
+                                        <small className="text-muted">{typeof e.location === 'string' ? e.location : e.location?.city}</small>
+                                    </div>
+                                )}
                             </button>
                         ))}
                     </div>
@@ -218,8 +274,82 @@ export default function DiscoverPanel({ user }) {
                     )}
                 </div>
             </div>
+            ) : (
+            // Grid View
+            <div className="row g-3">
+                {events.filter(e => filterEventBySearch(e, searchQuery)).map(e => {
+                    const orgData = orgDataMap[e.org_id];
+
+                    return (
+                        <div key={e.id} className="col-md-6 col-lg-4">
+                            <div className={styles.eventCard} onClick={() => setSelectedEvent(e)}>
+                                {e.image_url && (
+                                    <div className={styles.eventCardImage}>
+                                        <img src={e.image_url} alt={e.title} />
+                                    </div>
+                                )}
+                                <div className={styles.eventCardBody}>
+                                    {/* Organization */}
+                                    <div className="d-flex align-items-center gap-2 mb-2">
+                                        {orgData?.logo_url || orgData?.image_url ? (
+                                            <img 
+                                                src={orgData.logo_url || orgData.image_url} 
+                                                alt={orgData?.name} 
+                                                style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: '50%' }} 
+                                            />
+                                        ) : (
+                                            <div style={{ 
+                                                width: 32, 
+                                                height: 32, 
+                                                borderRadius: '50%', 
+                                                background: 'rgba(102, 126, 234, 0.2)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                fontSize: '0.75rem',
+                                                fontWeight: 600,
+                                                color: '#667eea'
+                                            }}>
+                                                {orgData?.name?.[0] || '?'}
+                                            </div>
+                                        )}
+                                        <small className="text-muted">{orgData?.name || 'Loading...'}</small>
+                                    </div>
+                                    
+                                    {/* Title */}
+                                    <h5 className={styles.eventCardTitle}>{e.title}</h5>
+                                    
+                                    {/* Description */}
+                                    <p className={styles.eventCardDescription}>
+                                        {e.description?.substring(0, 100)}{e.description?.length > 100 ? '...' : ''}
+                                    </p>
+                                    
+                                    {/* Location */}
+                                    <div className="d-flex align-items-center gap-2 mb-2">
+                                        <i className="bi bi-geo-alt" style={{ fontSize: '0.875rem', color: '#667eea' }}></i>
+                                        <small>{typeof e.location === 'string' ? e.location : (e.location?.city || 'Location TBD')}</small>
+                                    </div>
+                                    
+                                    {/* Date & Time */}
+                                    <div className="d-flex align-items-center gap-2 mb-2">
+                                        <i className="bi bi-calendar-event" style={{ fontSize: '0.875rem', color: '#667eea' }}></i>
+                                        <small>{new Date(e.start_at).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</small>
+                                    </div>
+                                    
+                                    {/* Capacity */}
+                                    <div className="d-flex align-items-center gap-2">
+                                        <i className="bi bi-people" style={{ fontSize: '0.875rem', color: '#667eea' }}></i>
+                                        <small>{e.capacity} spots</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+            )
             :
-            <p className="text-center mt-4">No events available</p>
+            <p className="text-center mt-4 text-muted">No events available</p>
             }
         {/* <EventInfoModal 
             id="info-modal" 
