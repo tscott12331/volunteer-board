@@ -80,6 +80,22 @@ export async function fetchOrganizationById(orgId) {
     }
 }
 
+export async function fetchOrganizationBySlug(slug) {
+    if (!slug) return APIError("Organization slug is undefined");
+
+    try {
+        const res = await supabase.rpc('get_organization_public', {
+            p_org_slug: slug,
+        });
+
+        if (res.error) return APIError(res.error.message);
+
+        return APISuccess(res.data[0]);
+    } catch (error) {
+        return APIError("Server error");
+    }
+}
+
 // Update organization profile
 export async function updateOrganization(orgId, data) {
     if (!orgId) return APIError("Organization ID is undefined");
@@ -139,6 +155,25 @@ export async function fetchOrganizationEvents(orgId) {
     } catch (error) {
         return APIError("Server error");
     }
+}
+
+export async function fetchOrganizationEventsBySlug(slug) {
+    if (!slug) return APIError("Organization slug is undefined");
+
+    try {
+        const res = await supabase.rpc('list_org_events_all', {
+            p_org_slug: slug,
+        })
+
+        if (res.error) return APIError(res.error.message);
+
+        console.log(res.data);
+
+        return APISuccess(res.data);
+    } catch (error) {
+        return APIError("Server error");
+    }
+
 }
 
 // Create a new event
