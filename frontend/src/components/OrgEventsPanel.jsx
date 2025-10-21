@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './OrgEventsPanel.module.css';
 import OrgEventCard from './OrgEventCard';
 import OrgEventDetailPanel from './OrgEventDetailPanel';
@@ -21,9 +21,12 @@ export default function OrgEventsPanel({ organization }) {
     // Filters/Search/Sort
     const [searchValue, setSearchValue] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
-    const [statusFilter, setStatusFilter] = useState(''); // draft/published/completed/cancelled
+    const [statusFilter, setStatusFilter] = useState(''); // draft/published
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+    const [openOnly, setOpenOnly] = useState(false);
+    const [dateChip, setDateChip] = useState(''); // '', 'today', 'this_week', 'weekend', 'upcoming'
+    const searchInputRef = useRef(null);
 
     useEffect(() => {
         loadEvents();
@@ -50,6 +53,18 @@ export default function OrgEventsPanel({ organization }) {
         return () => clearTimeout(t);
     }, [searchValue]);
 
+    // Keyboard shortcut to focus search with '/'
+    useEffect(() => {
+        const onKey = (e) => {
+            if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+                e.preventDefault();
+                searchInputRef.current?.focus();
+            }
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, []);
+
     const filteredSortedEvents = useMemo(() => {
         let list = Array.isArray(events) ? [...events] : [];
         if (searchQuery) {
@@ -70,10 +85,13 @@ export default function OrgEventsPanel({ organization }) {
             const ed = new Date(endDate);
             list = list.filter(e => new Date(e.start_at) <= ed);
         }
+        if (openOnly) {
+            list = list.filter(e => (e.capacity == null) || (e.registered_count < e.capacity));
+        }
         // Soonest first
         list.sort((a, b) => new Date(a.start_at) - new Date(b.start_at));
         return list;
-    }, [events, searchQuery, statusFilter, startDate, endDate]);
+    }, [events, searchQuery, statusFilter, startDate, endDate, openOnly]);
 
     const handleCreateClick = () => {
         setSelectedEvent(null);
@@ -113,6 +131,76 @@ export default function OrgEventsPanel({ organization }) {
         handleClearSelection();
     };
 
+    // Quick chip helpers
+    const toDateStr = (d) => {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    };
+
+    const setToday = () => {
+        const now = new Date();
+        const ds = toDateStr(now);
+        setStartDate(ds);
+        setEndDate(ds);
+        setStatusFilter('published');
+        setDateChip('today');
+    };
+
+    const setThisWeek = () => {
+        const now = new Date();
+        const day = now.getDay(); // 0 Sun .. 6 Sat
+        const mondayOffset = (day === 0 ? -6 : 1 - day); // Monday start
+        const monday = new Date(now);
+        monday.setDate(now.getDate() + mondayOffset);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        setStartDate(toDateStr(monday));
+        setEndDate(toDateStr(sunday));
+        setStatusFilter('published');
+        setDateChip('this_week');
+    };
+
+    const setWeekend = () => {
+        const now = new Date();
+        const day = now.getDay(); // 0 Sun .. 6 Sat
+        const nextSatOffset = (6 - day + 7) % 7; // days until next Saturday (0 if Sat)
+        const sat = new Date(now);
+        sat.setDate(now.getDate() + nextSatOffset);
+        const sun = new Date(sat);
+        sun.setDate(sat.getDate() + 1);
+        setStartDate(toDateStr(sat));
+        setEndDate(toDateStr(sun));
+        setStatusFilter('published');
+        setDateChip('weekend');
+    };
+
+    const setUpcoming = () => {
+        const now = new Date();
+        const ds = toDateStr(now);
+        setStartDate(ds);
+        setEndDate('');
+        setStatusFilter('published');
+        setDateChip('upcoming');
+    };
+
+    const toggleStatusChip = (value) => {
+        setStatusFilter(prev => prev === value ? '' : value);
+    };
+
+    const toggleOpenOnly = () => setOpenOnly(v => !v);
+
+    const clearAllFilters = () => {
+        setSearchValue('');
+        setSearchQuery('');
+        setStatusFilter('');
+        setStartDate('');
+        setEndDate('');
+        setOpenOnly(false);
+        setDateChip('');
+    };
+
     if (loading) {
         return (
             <div className="text-center py-5">
@@ -135,6 +223,34 @@ export default function OrgEventsPanel({ organization }) {
                 </div>
             </div>
 
+            <div className={styles.quickChips}>
+                <button type="button" className={`btn btn-sm ${dateChip === 'today' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={setToday}>
+                    <i className="bi bi-calendar-day me-1"/> Today
+                </button>
+                <button type="button" className={`btn btn-sm ${dateChip === 'this_week' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={setThisWeek}>
+                    <i className="bi bi-calendar-week me-1"/> This Week
+                </button>
+                <button type="button" className={`btn btn-sm ${dateChip === 'weekend' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={setWeekend}>
+                    <i className="bi bi-calendar2-weekend me-1"/> Weekend
+                </button>
+                <button type="button" className={`btn btn-sm ${dateChip === 'upcoming' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={setUpcoming}>
+                    <i className="bi bi-clock-history me-1"/> Upcoming
+                </button>
+                <div className="vr mx-1 d-none d-md-block" />
+                <button type="button" className={`btn btn-sm ${statusFilter === 'published' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => toggleStatusChip('published')}>
+                    <i className="bi bi-check2-circle me-1"/> Published
+                </button>
+                <button type="button" className={`btn btn-sm ${statusFilter === 'draft' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => toggleStatusChip('draft')}>
+                    <i className="bi bi-pencil-square me-1"/> Drafts
+                </button>
+                <button type="button" className={`btn btn-sm ${openOnly ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={toggleOpenOnly}>
+                    <i className="bi bi-person-plus me-1"/> Open Spots
+                </button>
+                <button type="button" className="btn btn-sm btn-outline-secondary" onClick={clearAllFilters}>
+                    <i className="bi bi-x-circle me-1"/> Reset
+                </button>
+            </div>
+
             <div className={styles.filtersRow}>
                 <input
                     type="text"
@@ -144,6 +260,7 @@ export default function OrgEventsPanel({ organization }) {
                     aria-label="Search events"
                     value={searchValue}
                     onChange={(e) => setSearchValue(e.target.value)}
+                    ref={searchInputRef}
                 />
                 <select
                     className="form-select"
@@ -155,23 +272,23 @@ export default function OrgEventsPanel({ organization }) {
                     <option value="">All Statuses</option>
                     <option value="draft">Draft</option>
                     <option value="published">Published</option>
-                    <option value="completed">Completed</option>
                 </select>
                 <input
                     type="date"
                     className="form-control"
                     aria-label="Start date"
                     value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    onChange={(e) => { setStartDate(e.target.value); setDateChip(''); }}
                 />
                 <input
                     type="date"
                     className="form-control"
                     aria-label="End date"
                     value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
+                    onChange={(e) => { setEndDate(e.target.value); setDateChip(''); }}
                 />
-                <button className="btn btn-outline-secondary" onClick={() => { setSearchValue(''); setSearchQuery(''); setStatusFilter(''); setStartDate(''); setEndDate(''); }}>Clear</button>
+                <div className="text-muted small ms-auto d-none d-md-block">{filteredSortedEvents.length} results</div>
+                <button className="btn btn-outline-secondary" onClick={clearAllFilters}>Clear</button>
             </div>
 
             <div className={styles.eventsContainer}>

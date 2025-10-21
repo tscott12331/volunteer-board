@@ -29,6 +29,15 @@
     margin-bottom: 1rem;
 }
 
+.quickChips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    margin-bottom: 0.5rem;
+}
+
 .eventsContainer {
     display: grid;
     grid-template-columns: 1fr 0.9fr;
