@@ -41,6 +41,7 @@ export default function EventCard({
 }) {
     const { title, description, image_url, start_at } = event
     const startDate = new Date(start_at);
+    const [showRegister, setShowRegister] = useState(true);
 
     const formatTime = (time) => {
         const [value, md] = time.split(' ');
@@ -72,17 +73,32 @@ export default function EventCard({
                     <p className="card-text">{description}</p>
                 </div>
                 <div className="d-flex flex-wrap align-items-center gap-2">
-                    <button 
-                        disabled={event.is_registered || isNewlyRegistered}
-                        type="button" 
-                        className="btn btn-primary"
-                        onClick={() => onRegister?.(event.id)}
-                    >
-                        Register
-                    </button>
-                    {(event.is_registered || isNewlyRegistered) &&
-                    <p className="m-0 d-inline-block text-secondary-emphasis">You are registered for this event</p>
-                    }
+                    {showRegister && !(event.is_registered || isNewlyRegistered) ? (
+                        <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={async () => {
+                                // optimistic hide
+                                setShowRegister(false);
+                                try {
+                                    const result = onRegister?.(event.id);
+                                    if (result && typeof result.then === 'function') {
+                                        await result;
+                                    }
+                                } catch (err) {
+                                    // restore button on failure
+                                    setShowRegister(true);
+                                    console.error('Registration failed', err);
+                                }
+                            }}
+                        >
+                            Register
+                        </button>
+                    ) : null}
+
+                    {(event.is_registered || isNewlyRegistered || !showRegister) && (
+                        <p className="m-0 d-inline-block text-secondary-emphasis">You are registered for this event</p>
+                    )}
                 </div>
             </div>
             <div className="card-footer d-flex justify-content-between">
