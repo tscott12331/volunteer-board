@@ -1,9 +1,8 @@
 import styles from './DiscoverPanel.module.css';
 
 import { useEffect, useState } from "react";
-import { fetchEvents, registerForEvent } from "../util/api/events";
-import EventCard from "./EventCard";
-// EventInfoModal removed - details shown inline in EventCard now
+import { fetchEvents, registerForEvent, fetchOrganization } from "../util/api/events";
+import { formatDateAtTime } from '../util/date';
 
 /*
     * Panel in the volunteer dashboard to view and register for available events
@@ -13,9 +12,7 @@ import EventCard from "./EventCard";
             * Supabase Auth user object
             * Currently logged in user
 */
-export default function DiscoverPanel({
-    user
-}) {
+export default function DiscoverPanel({ user }) {
     // available events based on search and date filters
     const [events, setEvents] = useState([]);
 
@@ -27,9 +24,9 @@ export default function DiscoverPanel({
     // search input state
     const  [searchValue, setSearchValue] = useState("");
 
-    // the selected event will be displayed on the modal popup when
-    // the more info button is selected
+    // the selected event will be displayed in the detail panel on the right
     const [selectedEvent, setSelectedEvent] = useState(undefined);
+    const [selectedOrg, setSelectedOrg] = useState(undefined);
     // hash containing the ids of registered events
     const [registeredEvents, setRegisteredEvents] = useState({});
 
@@ -93,6 +90,43 @@ export default function DiscoverPanel({
         })
     }, [user, startDate, endDate]);
 
+    // auto-select the first visible event when events or the search filter change
+    useEffect(() => {
+        const visible = events.filter(e => filterEventBySearch(e, searchQuery));
+        if (visible.length === 0) {
+            setSelectedEvent(undefined);
+            return;
+        }
+        // keep existing selection if it's still visible, otherwise select the first one
+        setSelectedEvent(prev => {
+            if (prev && visible.some(v => v.id === prev.id)) return prev;
+            return visible[0];
+        });
+    }, [events, searchQuery]);
+
+    useEffect(() => {
+        if (!selectedEvent?.org_id) {
+            setSelectedOrg(undefined);
+            return;
+        }
+        fetchOrganization(selectedEvent.org_id).then(res => {
+            if (res.success) setSelectedOrg(res.data);
+            else setSelectedOrg(undefined);
+        }).catch(() => setSelectedOrg(undefined));
+    }, [selectedEvent?.org_id]);
+
+    const hoursBetween = (startAt, endAt) => {
+        try {
+            const s = new Date(startAt);
+            const e = new Date(endAt);
+            const ms = Math.max(0, e - s);
+            const hours = ms / (1000 * 60 * 60);
+            return Math.round(hours * 100) / 100;
+        } catch {
+            return 0;
+        }
+    }
+
     return (
             <>
             <h2 className="mb-4 fw-bold">Discover</h2>
@@ -136,18 +170,53 @@ export default function DiscoverPanel({
             </div>
             {
             events.length > 0 ?
-            <div className={"d-grid gap-3 mt-4 " + styles.eventsWrappers}>
-            {
-                events.filter(e => filterEventBySearch(e, searchQuery)).map(e =>
-                <EventCard 
-                event={e}
-                onMoreInfo={(event) => setSelectedEvent(event)}
-                onRegister={handleRegistration}
-                isNewlyRegistered={registeredEvents[e.id] ?? false}
-                key={e.id}
-                />
-                )
-            }
+            <div className={"row mt-4 " + styles.eventsWrappers}>
+                <div className="col-md-4">
+                    <div className="list-group">
+                        {events.filter(e => filterEventBySearch(e, searchQuery)).map(e => (
+                            <button
+                                key={e.id}
+                                type="button"
+                                className={"list-group-item list-group-item-action " + (selectedEvent?.id === e.id ? 'active' : '')}
+                                onClick={() => setSelectedEvent(e)}
+                            >
+                                <div className="d-flex w-100 justify-content-between">
+                                    <h6 className="mb-1">{e.title}</h6>
+                                    <small>{new Date(e.start_at).toLocaleDateString()}</small>
+                                </div>
+                                <small className="text-muted">{hoursBetween(e.start_at, e.end_at)} hrs</small>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                <div className="col-md-8">
+                    {selectedEvent ? (
+                        <div className={"card p-3 shadow-sm " + styles.detailCard}>
+                            <div className="d-flex gap-3 align-items-center mb-2">
+                                {selectedOrg?.logo_url || selectedOrg?.image_url ? (
+                                    <img src={selectedOrg.logo_url || selectedOrg.image_url} alt={selectedOrg?.name} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }} />
+                                ) : null}
+                                <div>
+                                    <div className="text-body-emphasis">{selectedOrg?.name}</div>
+                                    <h4 className="mb-0">{selectedEvent.title}</h4>
+                                </div>
+                            </div>
+                            {selectedEvent.image_url && (
+                                <img src={selectedEvent.image_url} alt={selectedEvent.title} className="img-fluid mb-3" />
+                            )}
+                            <p>{selectedEvent.description}</p>
+                            <p className="mb-1"><strong>Location:</strong> {typeof selectedEvent.location === 'string' ? selectedEvent.location : (selectedEvent.location?.city || selectedEvent.location?.name || `${selectedEvent.location?.lat}, ${selectedEvent.location?.lon}`)}</p>
+                            <p className="mb-1"><strong>Date & time:</strong> {new Date(selectedEvent.start_at).toLocaleString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
+                            <p className="mb-1"><strong>Capacity:</strong> {selectedEvent.capacity}</p>
+                            <div className="d-flex gap-2 mt-3">
+                                <button className="btn btn-primary" onClick={() => handleRegistration(selectedEvent.id)}>Register</button>
+                                <button className="btn btn-outline-secondary" onClick={() => setSelectedEvent(undefined)}>Clear</button>
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="text-center text-muted">Select an event to see details</p>
+                    )}
+                </div>
             </div>
             :
             <p className="text-center mt-4">No events available</p>
