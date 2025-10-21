@@ -11,12 +11,18 @@
 
 .header {
   display: flex;
-  justify-content: flex-start;
-  align-items: center;
+  flex-direction: column;
   gap: 8px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   padding-bottom: 12px;
   margin-bottom: 16px;
+}
+
+.headerTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
 }
 
 .title {
@@ -44,13 +50,14 @@
   place-items: center;
 }
 
-.spacer {
+.spacer { /* no longer used; kept for safety */
   flex: 1 1 auto;
 }
 
 .footerActions {
   display: flex;
   justify-content: flex-start;
+  gap: 8px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding-top: 12px;
   margin-top: 16px;

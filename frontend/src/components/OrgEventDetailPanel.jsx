@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import styles from './OrgEventDetailPanel.module.css';
 import { formatEventDateTime } from '../util/date';
-import { createEvent, updateEvent, updateEventStatus, deleteEvent } from '../util/api/organizations';
+import { createEvent, updateEvent, updateEventStatus, deleteEvent, fetchEventRegistrations } from '../util/api/organizations';
 import CheckInModal from './CheckInModal';
 
 const STATES = [
@@ -118,6 +118,40 @@ export default function OrgEventDetailPanel({ organization, event, mode = 'view'
     }
     onDeleted && onDeleted();
     onClose && onClose();
+  };
+
+  const handleDownloadCsv = async () => {
+    if (!event?.id) return;
+    // Fetch all registrants (handle both array and {rows: []} shapes)
+    const res = await fetchEventRegistrations(event.id, { status: null, limit: 10000, offset: 0 });
+    if (!res.success) {
+      alert('Failed to fetch registrations: ' + res.message);
+      return;
+    }
+    const rows = Array.isArray(res.data?.rows) ? res.data.rows : (Array.isArray(res.data) ? res.data : []);
+    // Map to CSV rows
+      const headers = ['Full Name', 'Display Name', 'Status', 'Checked In'];
+    const dataLines = rows.map(r => {
+      const full = (r.full_name || '').replaceAll('"', '""');
+      const alias = (r.display_name || '').replaceAll('"', '""');
+      const status = r.status || '';
+      const checked = status === 'checked_in' ? 'Yes' : 'No';
+        const values = [full, alias, status, checked];
+      // Quote each value for CSV safety
+      return values.map(v => `"${String(v).replaceAll('"', '""')}"`).join(',');
+    });
+    const csv = [headers.join(','), ...dataLines].join('\n');
+    // Prepend BOM for Excel compatibility
+    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safeTitle = (event.title || 'event').replace(/[^a-z0-9\-_]+/gi, '_');
+    a.href = url;
+    a.download = `${safeTitle}_registrations.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
   
   // Removed - delete moved to card only
@@ -318,10 +352,20 @@ export default function OrgEventDetailPanel({ organization, event, mode = 'view'
   return (
     <aside className={styles.panel} aria-label="Event details">
       <div className={styles.header}>
-        <h3 className={styles.title}>
-          {event.title}
-          <span className={`badge ${badgeClass} ${styles.badge}`}>{event.status}</span>
-        </h3>
+        <div className={styles.headerTop}>
+          <h3 className={styles.title}>
+            {event.title}
+            <span className={`badge ${badgeClass} ${styles.badge}`}>{event.status}</span>
+          </h3>
+          <button
+            className={`btn btn-danger btn-sm ${styles.iconBtn}`}
+            onClick={handleDelete}
+            aria-label="Delete event"
+            title="Delete"
+          >
+            <i className="bi bi-trash" />
+          </button>
+        </div>
         <div className={styles.actionsRow}>
           {/* Keep Edit as the primary text button for clarity */}
           <button
@@ -346,15 +390,6 @@ export default function OrgEventDetailPanel({ organization, event, mode = 'view'
             Check-In
           </button>
         </div>
-        <div className={styles.spacer} />
-        <button
-          className={`btn btn-danger btn-sm ${styles.iconBtn}`}
-          onClick={handleDelete}
-          aria-label="Delete event"
-          title="Delete"
-        >
-          <i className="bi bi-trash" />
-        </button>
       </div>
       <div className={styles.content}>
         <div className={styles.metaRow}>
@@ -390,7 +425,7 @@ export default function OrgEventDetailPanel({ organization, event, mode = 'view'
         )}
       </div>
 
-      {/* Footer action: Publish/Unpublish */}
+      {/* Footer actions: Publish/Unpublish and Download CSV */}
       <div className={styles.footerActions}>
         <button
           className={`btn ${event.status === 'published' ? 'btn-warning' : 'btn-success'}`}
@@ -398,6 +433,15 @@ export default function OrgEventDetailPanel({ organization, event, mode = 'view'
         >
           <i className={`bi me-2 ${event.status === 'published' ? 'bi-cloud-slash' : 'bi-cloud-upload'}`} />
           {event.status === 'published' ? 'Unpublish' : 'Publish'}
+        </button>
+        <button
+          className="btn btn-outline-secondary"
+          onClick={handleDownloadCsv}
+          title="Download CSV of registrations"
+          aria-label="Download registrations CSV"
+        >
+          <i className="bi bi-download me-2" />
+          Download CSV
         </button>
       </div>
 

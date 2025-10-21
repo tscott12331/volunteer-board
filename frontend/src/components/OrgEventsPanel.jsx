@@ -33,12 +33,15 @@ export default function OrgEventsPanel({ organization }) {
         if (!organization?.id) return;
         setLoading(true);
         const result = await fetchOrganizationEvents(organization.id);
+        let list = [];
         if (result.success) {
-            setEvents(result.data);
+            list = Array.isArray(result.data) ? result.data : [];
+            setEvents(list);
         } else {
             console.error('Failed to load events:', result.message);
         }
         setLoading(false);
+        return list;
     }
 
     // Debounce search input
@@ -96,15 +99,12 @@ export default function OrgEventsPanel({ organization }) {
     };
 
     const handleSaved = async (savedEventId) => {
-        await loadEvents();
-        // After save, stay in view mode and try to select the saved event
+        const fresh = await loadEvents();
+        // After save, stay in view mode and try to select the saved event from freshly loaded list
         setMode('view');
         if (savedEventId) {
-            // Find and select the saved event
-            const saved = events.find(e => e.id === savedEventId);
-            if (saved) {
-                setSelectedEvent(saved);
-            }
+            const saved = fresh.find(e => e.id === savedEventId);
+            if (saved) setSelectedEvent(saved);
         }
     };
 
