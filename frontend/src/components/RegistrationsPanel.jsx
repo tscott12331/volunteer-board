@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import RegisteredEventCard from "./RegisteredEventCard";
-import { fetchRegisteredEvents } from "../util/api/events";
-import { fetchOrganization } from "../util/api/organizations";
+import { fetchRegisteredEvents, fetchOrganization } from "../util/api/events";
 import EventInfoModal from "./EventInfoModal";
 import styles from './RegistrationsPanel.module.css';
 
