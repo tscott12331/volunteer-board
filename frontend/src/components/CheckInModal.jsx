@@ -65,8 +65,8 @@ export default function CheckInModal({ event, onClose, onCheckInComplete }) {
 
     const filteredRegistrations = Array.isArray(registrations)
         ? registrations.filter(reg => {
-            const name = reg.display_name || reg.full_name || '';
-            return name.toLowerCase().includes(searchQuery.toLowerCase());
+            const combined = `${reg.full_name || ''} ${reg.display_name || ''}`.trim();
+            return combined.toLowerCase().includes(searchQuery.toLowerCase());
         })
         : [];
 
@@ -123,7 +123,10 @@ export default function CheckInModal({ event, onClose, onCheckInComplete }) {
                         </div>
                     ) : (
                         filteredRegistrations.map(registration => {
-                            const name = registration.display_name || registration.full_name || 'Unknown';
+                            const full = (registration.full_name || '').trim();
+                            const alias = (registration.display_name || '').trim();
+                            const primary = full || alias || 'Unknown';
+                            const secondary = full && alias && alias !== full ? alias : null;
                             const isCheckedIn = registration.status === 'checked_in';
                             const regTime = registration.created_at ? new Date(registration.created_at).toLocaleString() : null;
                             return (
@@ -132,15 +135,18 @@ export default function CheckInModal({ event, onClose, onCheckInComplete }) {
                                         {registration.avatar_url ? (
                                             <img 
                                                 src={registration.avatar_url} 
-                                                alt={name}
+                                                alt={primary}
                                                 className={styles.avatar}
                                             />
                                         ) : (
                                             <div className={styles.avatarPlaceholder}>
-                                                {name.charAt(0).toUpperCase()}
+                                                {primary.charAt(0).toUpperCase()}
                                             </div>
                                         )}
-                                        <span className={styles.volunteerName}>{name}</span>
+                                        <span className={styles.volunteerName}>
+                                            {primary}
+                                            {secondary && <span className="text-muted ms-1">({secondary})</span>}
+                                        </span>
                                         {regTime && (
                                             <span className={styles.regTime}>Registered: {regTime}</span>
                                         )}

@@ -156,7 +156,6 @@ export default function OrgEventsPanel({ organization }) {
                     <option value="draft">Draft</option>
                     <option value="published">Published</option>
                     <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
                 </select>
                 <input
                     type="date"

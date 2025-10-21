@@ -323,55 +323,38 @@ export default function OrgEventDetailPanel({ organization, event, mode = 'view'
           <span className={`badge ${badgeClass} ${styles.badge}`}>{event.status}</span>
         </h3>
         <div className={styles.actionsRow}>
-          <button 
-            className="btn btn-primary" 
-            onClick={onEdit} 
+          {/* Keep Edit as the primary text button for clarity */}
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={onEdit}
             aria-label="Edit event"
             style={{ backgroundColor: '#007bff', borderColor: '#007bff' }}
+            title="Edit"
           >
-            <i className="bi bi-pencil me-1"></i>
-            Edit
+            <i className="bi bi-pencil me-1" />
+            <span className="d-none d-sm-inline">Edit</span>
           </button>
-          <button 
-            className="btn btn-outline-secondary" 
-            onClick={() => setShowCheckIn(true)} 
+
+          {/* Separate secondary buttons with spacing */}
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => setShowCheckIn(true)}
             aria-label="Open check-in"
+            title="Check-In"
           >
-            <i className="bi bi-check2-square me-1"></i>
+            <i className="bi bi-check2-square me-1" />
             Check-In
           </button>
-          <button 
-            className="btn btn-outline-success" 
-            onClick={handlePublishToggle} 
-            aria-label={event.status === 'published' ? 'Unpublish' : 'Publish'}
-          >
-            {event.status === 'published' ? 'Unpublish' : 'Publish'}
-          </button>
-          {event.status !== 'cancelled' && (
-            <button
-              className="btn btn-outline-warning"
-              onClick={async () => {
-                if (!confirm('Cancel this event? Volunteers will be notified if you have notifications set up.')) return;
-                const res = await updateEventStatus(event.id, 'cancelled');
-                if (!res.success) {
-                  alert('Failed to cancel event: ' + res.message);
-                  return;
-                }
-                onSaved && onSaved(event.id);
-              }}
-              aria-label="Cancel event"
-            >
-              Cancel Event
-            </button>
-          )}
-          <button 
-            className="btn btn-outline-danger" 
-            onClick={handleDelete} 
-            aria-label="Delete event"
-          >
-            Delete
-          </button>
         </div>
+        <div className={styles.spacer} />
+        <button
+          className={`btn btn-danger btn-sm ${styles.iconBtn}`}
+          onClick={handleDelete}
+          aria-label="Delete event"
+          title="Delete"
+        >
+          <i className="bi bi-trash" />
+        </button>
       </div>
       <div className={styles.content}>
         <div className={styles.metaRow}>
@@ -405,6 +388,17 @@ export default function OrgEventDetailPanel({ organization, event, mode = 'view'
             <div style={{ whiteSpace: 'pre-wrap' }}>{event.description}</div>
           </div>
         )}
+      </div>
+
+      {/* Footer action: Publish/Unpublish */}
+      <div className={styles.footerActions}>
+        <button
+          className={`btn ${event.status === 'published' ? 'btn-warning' : 'btn-success'}`}
+          onClick={handlePublishToggle}
+        >
+          <i className={`bi me-2 ${event.status === 'published' ? 'bi-cloud-slash' : 'bi-cloud-upload'}`} />
+          {event.status === 'published' ? 'Unpublish' : 'Publish'}
+        </button>
       </div>
 
       {showCheckIn && (
