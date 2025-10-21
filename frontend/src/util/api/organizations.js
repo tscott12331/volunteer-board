@@ -80,12 +80,14 @@ export async function fetchOrganizationById(orgId) {
     }
 }
 
-export async function fetchOrganizationBySlug(slug) {
+// fetch an organization by its unique slug with an optional userId for is_followed info
+export async function fetchOrganizationBySlug(slug, userId) {
     if (!slug) return APIError("Organization slug is undefined");
 
     try {
         const res = await supabase.rpc('get_organization_public', {
             p_org_slug: slug,
+            p_user_id: userId,
         });
 
         if (res.error) return APIError(res.error.message);
@@ -157,6 +159,7 @@ export async function fetchOrganizationEvents(orgId) {
     }
 }
 
+// fetch an organizations events by its unique slug
 export async function fetchOrganizationEventsBySlug(slug) {
     if (!slug) return APIError("Organization slug is undefined");
 
@@ -166,8 +169,6 @@ export async function fetchOrganizationEventsBySlug(slug) {
         })
 
         if (res.error) return APIError(res.error.message);
-
-        console.log(res.data);
 
         return APISuccess(res.data);
     } catch (error) {
@@ -354,6 +355,40 @@ export async function fetchOrganizationFollowers(orgId) {
 
         return APISuccess({ count: res.count });
     } catch (error) {
+        return APIError("Server error");
+    }
+}
+
+// subscribe to/follow an organization
+export async function followOrganization(orgId) {
+    if (!orgId) return APIError("Organization ID is undefined");
+
+    try {
+        const res = await supabase.rpc('subscribe_to_org', {
+            p_org_id: orgId
+        })
+
+        if (res.error) return APIError(res.error.message);
+
+        return APISuccess(res.data);
+    } catch(error) {
+        return APIError("Server error");
+    }
+}
+
+// unsubscribe from/unfollow an organization
+export async function unfollowOrganization(orgId) {
+    if (!orgId) return APIError("Organization ID is undefined");
+
+    try {
+        const res = await supabase.rpc('unsubscribe_from_org', {
+            p_org_id: orgId
+        })
+
+        if (res.error) return APIError(res.error.message);
+
+        return APISuccess(res.data);
+    } catch(error) {
         return APIError("Server error");
     }
 }

@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react';
 import styles from './OrgPage.module.css';
-import { fetchOrganizationBySlug, fetchOrganizationEventsBySlug } from '../util/api/organizations';
+import { fetchOrganizationBySlug, fetchOrganizationEventsBySlug, followOrganization, unfollowOrganization } from '../util/api/organizations';
 import { useParams } from 'react-router';
+import { supabase } from '../util/api/supabaseClient';
 
 export default function OrgPage() {
     const { slug } = useParams();
 
-    const [org, setOrg] = useState({});
+    const [newlyFollowed, setNewlyFollowed] = useState(false);
+    const [newlyUnfollowed, setNewlyUnfollowed] = useState(false);
 
+    const [sessionUserId, setSessionUserId] = useState(undefined);
+
+    const [org, setOrg] = useState({});
     const [orgEvents, setOrgEvents] = useState([]);
 
     const hoursBetween = (startAt, endAt) => {
@@ -22,13 +27,37 @@ export default function OrgPage() {
         }
     }
 
+    const handleFollow = async (id) => {
+        // not implemented
+        const res = await followOrganization(id);
+        if(res.success) {
+            setNewlyFollowed(true);
+            setNewlyUnfollowed(false);
+        }
+    }
+
+    const handleUnfollow = async (id) => {
+        // not implemented
+        const res = await unfollowOrganization(id);
+        if(res.success) {
+            setNewlyFollowed(false);
+            setNewlyUnfollowed(true);
+        }
+    }
+
+
     useEffect(() => {
-        fetchOrganizationBySlug(slug).then(res => {
-            if(res.success) {
-                setOrg(res.data);
-                console.log(res.data);
-            }
-        })
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            const userId = session?.user?.id ?? null;
+            setSessionUserId(userId);
+
+            fetchOrganizationBySlug(slug, userId).then(res => {
+                if(res.success) {
+                    setOrg(res.data);
+                    console.log(res.data);
+                }
+            })
+        });
 
         fetchOrganizationEventsBySlug(slug).then(res => {
             if(res.success) {
@@ -48,7 +77,24 @@ export default function OrgPage() {
                                 <img src={org.logo_url || '/placeholder.svg'} alt="Avatar" className={styles.pfp} />
                             </div>
                             <h2 className={styles.orgName}>{org.name}</h2>
-                            <button className="btn btn-primary">Follow</button>
+                            {sessionUserId &&
+                            (
+                            (org.is_following || newlyFollowed) && !newlyUnfollowed ?
+                            <button 
+                                className="btn btn-danger"
+                                onClick={() => handleUnfollow(org.id)}
+                            >
+                                Unfollow
+                            </button>
+                            :
+                            <button 
+                                className="btn btn-primary"
+                                onClick={() => handleFollow(org.id)}
+                            >
+                                Follow
+                            </button>
+                            )
+                            }
                         </div>
                     </div>
                     <div className={styles.body}>
@@ -101,7 +147,7 @@ export default function OrgPage() {
                                         {e.location && (
                                             <div className="d-flex align-items-center gap-2">
                                                 <i className="bi bi-geo-alt text-muted" style={{ fontSize: '0.875rem' }}></i>
-                                                <small className="text-muted">{e.location?.address}</small>
+                                                <small className="text-muted">{e.location?.address || `${e.location?.street}, ${e.location?.city} ${e.location?.state}, ${e.location?.zip}`}</small>
                                             </div>
                                         )}
                                     </button>
