@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import styles from './FollowedOrgCard.module.css';
 
 /*
@@ -8,19 +8,22 @@ import styles from './FollowedOrgCard.module.css';
 export default function FollowedOrgCard({
     org
 }) {
+    const navigate = useNavigate();
+
     // unfollows a user from an organization
-    const handleUnfollow = () => {
+    const handleUnfollow = (e) => {
+        e.stopPropagation();
         // not implemented
     }
 
     return (
-        <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 px-3 py-2 bg-body-secondary shadow-sm rounded-3" >
+        <div 
+            className={"d-flex flex-wrap justify-content-between align-items-center gap-3 bg-body-secondary shadow-sm rounded-3 text-decoration-none " + styles.card}
+            onClick={() => navigate(`/orgs/${org.slug}`)}
+        >
             <div className="d-flex align-content-center gap-3">
                 <img className={"img-fluid d-inline-block " + styles.logo} src={org.logo_url} />
-                <div className="d-flex flex-column justify-content-center">
-                    <h3 className="text-body-emphasis"><Link to={`/orgs/${org.slug}`}>{org.name}</Link></h3>
-                    <p className="mb-0">{org.description}</p>
-                </div>
+                <h3 className={"fw-semibold mb-0 " + styles.name}>{org.name}</h3>
             </div>
             <button 
                 role="button"
