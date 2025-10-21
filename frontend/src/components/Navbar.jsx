@@ -1,7 +1,8 @@
-import { Link, useNavigate, useLocation } from "react-router";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../util/api/supabaseClient";
 import { useState, useEffect } from "react";
 import Notifications from './Notifications';
+import { useRef } from 'react';
 
 /*
     * Dynamically displays necessary nav links
@@ -15,14 +16,13 @@ export default function Navbar({
 }) {
     const navigate = useNavigate();
     const location = useLocation();
+
     const [userProfile, setUserProfile] = useState(null);
     const [hasOrganization, setHasOrganization] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
-    
-    // different nav options appear when user is logged in
-    const loggedIn = user ? true : false;
-
-    // Determine current view based on route
+    const [showProfileMenu, setShowProfileMenu] = useState(false);
+    const profileMenuRef = useRef();
+    const loggedIn = !!user;
     const currentView = location.pathname === '/org-dashboard' ? 'organization' : 'volunteer';
 
     useEffect(() => {
@@ -72,71 +72,101 @@ export default function Navbar({
     // Only show view switcher if user has organization account
     const showViewSwitcher = loggedIn && (userProfile?.account === 'organization' || hasOrganization);
     
-    return (
-        <nav className="navbar navbar-expand-lg bg-body-tertiary">
-            <div className="container-fluid">
-                <Link className="navbar-brand" to="/">StepUp</Link>
-                
-                {showViewSwitcher && (
-                    <select 
-                        className="form-select form-select-sm ms-3" 
-                        style={{ width: 'auto' }}
-                        value={currentView}
-                        onChange={handleViewChange}
-                    >
-                        <option value="volunteer">Volunteer View</option>
-                        <option value="organization">Organization View</option>
-                    </select>
-                )}
+    // Avatar/initials helper
+    const getAvatar = () => {
+        if (userProfile?.avatar_url) return <img src={userProfile.avatar_url} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%' }} />;
+        if (user?.email) return <span className="avatar-circle">{user.email[0].toUpperCase()}</span>;
+        return <span className="avatar-circle">U</span>;
+    };
 
-                <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                    <span className="navbar-toggler-icon"></span>
-                </button>
-                <div className="collapse navbar-collapse d-flex justify-content-end" id="navbarNav">
-                    <ul className="navbar-nav">
-                        <li className="nav-item">
-                            <Link className="nav-link active" to="/">Home</Link>
-                        </li>
-                        {
-                        loggedIn ? (
-                        <>
-                        <li className="nav-item">
-                            <Link className="nav-link active" to={"/profile/" + user.id}>Profile</Link>
-                        </li>
-                        <li className="nav-item">
-                            <a 
-                                className="nav-link active" 
-                                href="#"
-                                onClick={handleSignout}
-                            >Sign out</a>
-                        </li>
-                        <li className="nav-item d-flex align-items-center align-self-end">
+    // Close profile menu on outside click
+    useEffect(() => {
+        function handleClick(e) {
+            if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
+                setShowProfileMenu(false);
+            }
+        }
+        if (showProfileMenu) document.addEventListener('mousedown', handleClick);
+        return () => document.removeEventListener('mousedown', handleClick);
+    }, [showProfileMenu]);
+
+    return (
+        <nav className="navbar navbar-dark bg-dark shadow-sm px-2" style={{ minHeight: 56 }}>
+            <div className="container-fluid d-flex align-items-center justify-content-between">
+                {/* Left: Logo */}
+                <div className="d-flex align-items-center gap-3">
+                    <Link className="navbar-brand fw-bold" to="/" style={{ fontSize: '1.5rem', letterSpacing: '0.02em' }}>
+                        <span style={{ color: '#0d6efd' }}>Step</span>Up
+                    </Link>
+                    {showViewSwitcher && (
+                        <select 
+                            className="form-select form-select-sm ms-2" 
+                            style={{ width: 'auto' }}
+                            value={currentView}
+                            onChange={handleViewChange}
+                        >
+                            <option value="volunteer">Volunteer View</option>
+                            <option value="organization">Organization View</option>
+                        </select>
+                    )}
+                </div>
+
+                {/* Center: Main nav */}
+                <div className="d-none d-md-flex gap-3 align-items-center">
+                    <Link className={`nav-link${location.pathname === '/' ? ' active' : ''}`} to="/">Home</Link>
+                    {/* Add more nav links here if needed */}
+                </div>
+
+                {/* Right: Notifications and Profile */}
+                <div className="d-flex align-items-center gap-2 position-relative">
+                    {loggedIn && (
+                        <button
+                            className="btn btn-link position-relative p-0 me-2"
+                            style={{ fontSize: 22 }}
+                            onClick={() => setShowNotifications(v => !v)}
+                            aria-label="Toggle notifications"
+                        >
+                            <i className="fa-solid fa-bell" />
+                            {/* TODO: Add unread badge here if needed */}
+                        </button>
+                    )}
+                    {loggedIn ? (
+                        <div className="dropdown" ref={profileMenuRef}>
                             <button
-                                className="btn btn-link nav-link"
-                                onClick={() => setShowNotifications(v => !v)}
-                                aria-label="Toggle notifications"
+                                className="btn btn-link p-0 d-flex align-items-center"
+                                style={{ minWidth: 36 }}
+                                onClick={() => setShowProfileMenu(v => !v)}
+                                aria-label="Profile menu"
                             >
-                                <i className="fa-solid fa-bell"></i>
+                                {getAvatar()}
+                                <i className="bi bi-caret-down ms-1 text-secondary" />
                             </button>
-                        </li>
-                        </>
-                        ) : (
+                            {showProfileMenu && (
+                                <ul className="dropdown-menu dropdown-menu-end show mt-2" style={{ minWidth: 160, right: 0, left: 'auto' }}>
+                                    <li>
+                                        <Link className="dropdown-item" to={`/profile/${user.id}`} onClick={() => setShowProfileMenu(false)}>Profile</Link>
+                                    </li>
+                                    <li>
+                                        <Link className="dropdown-item" to="/notifications" onClick={() => setShowProfileMenu(false)}>Notifications</Link>
+                                    </li>
+                                    <li><hr className="dropdown-divider" /></li>
+                                    <li>
+                                        <button className="dropdown-item text-danger" onClick={handleSignout}>Sign out</button>
+                                    </li>
+                                </ul>
+                            )}
+                        </div>
+                    ) : (
                         <>
-                        <li className="nav-item">
-                            <Link className="nav-link active" to="/signin">Sign in</Link>
-                        </li>
-                        <li className="nav-item btn btn-primary p-0">
-                            <Link className="nav-link active" to="/signup">Sign up</Link>
-                        </li>
+                            <Link className="btn btn-outline-light btn-sm me-2" to="/signin">Sign in</Link>
+                            <Link className="btn btn-primary btn-sm" to="/signup">Sign up</Link>
                         </>
-                        )
-                        }
-                    </ul>
+                    )}
                 </div>
             </div>
             {showNotifications && loggedIn && (
                 <Notifications user={user} onClose={() => setShowNotifications(false)} />
             )}
         </nav>
-    )
+    );
 }
