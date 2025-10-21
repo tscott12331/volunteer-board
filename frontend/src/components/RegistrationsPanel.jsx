@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import EventInfoModal from "./EventInfoModal";
 import RegisteredEventCard from "./RegisteredEventCard";
 import { fetchRegisteredEvents } from "../util/api/events";
+import EventInfoModal from "./EventInfoModal";
 
 /*
     * Panel on the volunteer dashboard that displays the events a 
@@ -21,14 +21,27 @@ export default function RegistrationsPanel({
     const [selectedEvent, setSelectedEvent] = useState(undefined)
     
     useEffect(() => {
-        // fetch a events that a user is registered to
+        // fetch events that a user is registered to
+        if (!user?.id) return;
         fetchRegisteredEvents(user.id).then(res => {
             if(res.success) {
                 // set events on fetch success
                 setEvents(res.data);
             }
         })
-    }, []);
+    }, [user]);
+
+    useEffect(() => {
+        const handler = (e) => {
+            // when registration changes elsewhere, refetch
+            if (!user?.id) return;
+            fetchRegisteredEvents(user.id).then(res => {
+                if(res.success) setEvents(res.data);
+            });
+        };
+        window.addEventListener('registration:changed', handler);
+        return () => window.removeEventListener('registration:changed', handler);
+    }, [user]);
 
     return (
         <>

@@ -1,6 +1,7 @@
 import { Link, useNavigate, useLocation } from "react-router";
 import { supabase } from "../util/api/supabaseClient";
 import { useState, useEffect } from "react";
+import Notifications from './Notifications';
 
 /*
     * Dynamically displays necessary nav links
@@ -16,6 +17,7 @@ export default function Navbar({
     const location = useLocation();
     const [userProfile, setUserProfile] = useState(null);
     const [hasOrganization, setHasOrganization] = useState(false);
+    const [showNotifications, setShowNotifications] = useState(false);
     
     // different nav options appear when user is logged in
     const loggedIn = user ? true : false;
@@ -54,6 +56,8 @@ export default function Navbar({
     // signs user out 
     const handleSignout = async () => {
         await supabase.auth.signOut();
+        // navigate to home after signout
+        navigate('/');
     }
 
     const handleViewChange = (e) => {
@@ -88,13 +92,13 @@ export default function Navbar({
                 <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span className="navbar-toggler-icon"></span>
                 </button>
-                <div className="collapse navbar-collapse" id="navbarNav">
+                <div className="collapse navbar-collapse d-flex justify-content-end" id="navbarNav">
                     <ul className="navbar-nav">
                         <li className="nav-item">
                             <Link className="nav-link active" to="/">Home</Link>
                         </li>
                         {
-                        loggedIn ?
+                        loggedIn ? (
                         <>
                         <li className="nav-item">
                             <Link className="nav-link active" to={"/profile/" + user.id}>Profile</Link>
@@ -106,20 +110,33 @@ export default function Navbar({
                                 onClick={handleSignout}
                             >Sign out</a>
                         </li>
+                        <li className="nav-item d-flex align-items-center align-self-end">
+                            <button
+                                className="btn btn-link nav-link"
+                                onClick={() => setShowNotifications(v => !v)}
+                                aria-label="Toggle notifications"
+                            >
+                                <i className="fa-solid fa-bell"></i>
+                            </button>
+                        </li>
                         </>
-                        :
+                        ) : (
                         <>
                         <li className="nav-item">
                             <Link className="nav-link active" to="/signin">Sign in</Link>
                         </li>
-                        <li className="nav-item">
+                        <li className="nav-item btn btn-primary p-0">
                             <Link className="nav-link active" to="/signup">Sign up</Link>
                         </li>
                         </>
+                        )
                         }
                     </ul>
                 </div>
             </div>
+            {showNotifications && loggedIn && (
+                <Notifications user={user} onClose={() => setShowNotifications(false)} />
+            )}
         </nav>
     )
 }

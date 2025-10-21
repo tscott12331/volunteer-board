@@ -1,0 +1,35 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 320px;
+  max-height: 100vh;
+  overflow-y: auto;
+  background: var(--bs-body-bg);
+  color: whitesmoke;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 1050; /* over most content */
+  padding: 0.75rem;
+}
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.3);
+  z-index: 1040;
+}
+.header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom: 0.5rem;
+}
+.item {
+  border-bottom: 1px solid #eee;
+  padding: 0.5rem 0;
+}
+.unread {
+  font-weight: 600;
+}
+.muted {
+  color: #6c757d;
+}

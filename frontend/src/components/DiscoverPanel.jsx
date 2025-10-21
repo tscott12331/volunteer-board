@@ -3,7 +3,7 @@ import styles from './DiscoverPanel.module.css';
 import { useEffect, useState } from "react";
 import { fetchEvents, registerForEvent } from "../util/api/events";
 import EventCard from "./EventCard";
-import EventInfoModal from "./EventInfoModal";
+// EventInfoModal removed - details shown inline in EventCard now
 
 /*
     * Panel in the volunteer dashboard to view and register for available events
@@ -71,13 +71,22 @@ export default function DiscoverPanel({
         const res = await registerForEvent(id);
         if(res.success) {
             setRegisteredEvents((re) => ({...re, [id]: true}));
+            // notify other parts of the app (e.g., RegistrationsPanel) to refresh
+            try {
+                window.dispatchEvent(new CustomEvent('registration:changed', { detail: { eventId: id, action: 'registered' } }));
+            } catch (e) {
+                // ignore if window not available
+            }
         }
+        return res;
     }
 
     useEffect(() => {
         // fetch events based on a search query, start date, and end date
         fetchEvents(startDate, endDate, user?.id).then(res => {
             if(res.success) {
+                // debug: log raw events to confirm `location` is returned
+                console.log('DiscoverPanel fetched events:', res.data);
                 // set events on successful fetch
                 setEvents(res.data);
             }
@@ -143,12 +152,12 @@ export default function DiscoverPanel({
             :
             <p className="text-center mt-4">No events available</p>
             }
-        <EventInfoModal 
+        {/* <EventInfoModal 
             id="info-modal" 
             event={selectedEvent} 
             isNewlyRegistered={registeredEvents[selectedEvent?.id] ?? false}
             onRegister={handleRegistration}
-        />
+        /> */}
         </>
     );
 }

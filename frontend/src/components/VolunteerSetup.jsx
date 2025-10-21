@@ -18,6 +18,12 @@ export default function VolunteerSetup() {
     phone: '',
     bio: '',
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Los_Angeles',
+    availability: {
+      days: [],
+      start_time: '',
+      end_time: '',
+      location: '',
+    },
   });
 
   const timezones = useMemo(() => {
@@ -68,11 +74,30 @@ export default function VolunteerSetup() {
     setForm(f => ({ ...f, [name]: value }));
   };
 
+  const toggleDay = (day) => {
+    setForm(f => {
+      const days = new Set(f.availability.days || []);
+      if (days.has(day)) days.delete(day); else days.add(day);
+      return { ...f, availability: { ...f.availability, days: Array.from(days) } };
+    });
+  };
+
+  const onAvailabilityChange = (e) => {
+    const { name, value } = e.target;
+    setForm(f => ({ ...f, availability: { ...f.availability, [name]: value } }));
+  };
+
   const onSubmit = async (e) => {
     e.preventDefault();
     if (!user) return;
     setSaving(true);
-    const result = await upsertProfile(user.id, form);
+    // include availability in the profile payload
+    const payload = { ...form };
+    // normalize days to a simple array of strings
+    if (payload.availability && Array.isArray(payload.availability.days)) {
+      payload.availability.days = payload.availability.days;
+    }
+    const result = await upsertProfile(user.id, payload);
     setSaving(false);
     if (result.success) {
       // Best-effort: set onboarding_complete flag if column exists
@@ -144,6 +169,41 @@ export default function VolunteerSetup() {
                 <select id="timezone" name="timezone" className="form-select" value={form.timezone} onChange={onChange} required>
                   {timezones.map(tz => <option key={tz} value={tz}>{tz}</option>)}
                 </select>
+              </div>
+
+              <div className="col-12 mt-3">
+                <h5>Availability</h5>
+                <div className="mb-2">
+                  <div className="d-flex flex-wrap gap-2">
+                    {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
+                      <div className="form-check" key={d}>
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          id={`avail-${d}`}
+                          checked={form.availability.days.includes(d)}
+                          onChange={() => toggleDay(d)}
+                        />
+                        <label className="form-check-label" htmlFor={`avail-${d}`}>{d}</label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="row g-3">
+                  <div className="col-md-3">
+                    <label htmlFor="start_time">Start time</label>
+                    <input id="start_time" name="start_time" type="time" className="form-control" value={form.availability.start_time} onChange={onAvailabilityChange} />
+                  </div>
+                  <div className="col-md-3">
+                    <label htmlFor="end_time">End time</label>
+                    <input id="end_time" name="end_time" type="time" className="form-control" value={form.availability.end_time} onChange={onAvailabilityChange} />
+                  </div>
+                  <div className="col-md-6">
+                    <label htmlFor="location">Preferred location</label>
+                    <input id="location" name="location" className="form-control" placeholder="City, neighborhood, or 'remote'" value={form.availability.location} onChange={onAvailabilityChange} />
+                  </div>
+                </div>
               </div>
             </div>
             <div className="d-flex justify-content-end mt-4">
