@@ -77,3 +77,26 @@ export async function registerForEvent(eventId) {
         return APIError("Server error");
     }
 }
+
+// unregister a user from an event
+export async function unregisterFromEvent(eventId, userId) {
+    if (!eventId || !userId) return APIError("Event ID or User ID is undefined");
+    try {
+        // Try direct delete; if RLS blocks this, fall back to RPC if available
+        const { error } = await supabase
+            .from('event_registrations')
+            .delete()
+            .eq('event_id', eventId)
+            .eq('user_id', userId);
+
+        if (error) {
+            // Optional: attempt RPC 'leave_event' if your DB function exists
+            const rpc = await supabase.rpc('leave_event', { p_event_id: eventId });
+            if (rpc.error) return APIError(error.message || rpc.error.message);
+            return APISuccess(rpc.data ?? true);
+        }
+        return APISuccess(true);
+    } catch (error) {
+        return APIError("Server error");
+    }
+}
