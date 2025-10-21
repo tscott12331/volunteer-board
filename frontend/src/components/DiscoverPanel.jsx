@@ -151,22 +151,34 @@ export default function DiscoverPanel({ user }) {
             <>
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h2 className="mb-0 fw-bold text-white">Discover</h2>
-                <div className="btn-group" role="group" aria-label="View mode">
+                <div className="d-flex gap-2">
                     <button 
                         type="button" 
-                        className={`btn btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                        className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-outline-secondary'}`}
                         onClick={() => setViewMode('list')}
                         title="List view"
+                        style={{
+                            background: viewMode === 'list' ? '#007bff' : 'rgba(255, 255, 255, 0.05)',
+                            border: viewMode === 'list' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                            color: '#fff',
+                            padding: '0.5rem 1rem'
+                        }}
                     >
-                        <i className="bi bi-list-ul"></i>
+                        <i className="bi bi-list-ul"></i> List
                     </button>
                     <button 
                         type="button" 
-                        className={`btn btn-sm ${viewMode === 'grid' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                        className={`btn ${viewMode === 'grid' ? 'btn-primary' : 'btn-outline-secondary'}`}
                         onClick={() => setViewMode('grid')}
                         title="Grid view"
+                        style={{
+                            background: viewMode === 'grid' ? '#007bff' : 'rgba(255, 255, 255, 0.05)',
+                            border: viewMode === 'grid' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                            color: '#fff',
+                            padding: '0.5rem 1rem'
+                        }}
                     >
-                        <i className="bi bi-grid-3x2"></i>
+                        <i className="bi bi-grid-3x3-gap"></i> Grid
                     </button>
                 </div>
             </div>
@@ -220,15 +232,24 @@ export default function DiscoverPanel({ user }) {
             <div className={"row mt-4 " + styles.eventsWrappers}>
                 <div className="col-md-4">
                     <div className={styles.eventList}>
-                        {events.filter(e => filterEventBySearch(e, searchQuery)).map(e => (
+                        {events.filter(e => filterEventBySearch(e, searchQuery)).map(e => {
+                            const isRegistered = e.is_registered || registeredEvents[e.id];
+                            return (
                             <button
                                 key={e.id}
                                 type="button"
-                                className={`${styles.eventListItem} ${selectedEvent?.id === e.id ? styles.active : ''}`}
+                                className={`${styles.eventListItem} ${selectedEvent?.id === e.id ? styles.active : ''} ${isRegistered ? styles.registered : ''}`}
                                 onClick={() => setSelectedEvent(e)}
                             >
                                 <div className="d-flex w-100 justify-content-between align-items-start mb-2">
-                                    <h6 className="mb-0 fw-semibold">{e.title}</h6>
+                                    <div className="d-flex align-items-center gap-2">
+                                        <h6 className="mb-0 fw-semibold">{e.title}</h6>
+                                        {isRegistered && (
+                                            <span className={styles.listRegisteredBadge}>
+                                                <i className="bi bi-check-circle-fill"></i>
+                                            </span>
+                                        )}
+                                    </div>
                                     <small className={styles.dateText}>{new Date(e.start_at).toLocaleDateString()}</small>
                                 </div>
                                 <div className="d-flex align-items-center gap-2 mb-2">
@@ -242,7 +263,8 @@ export default function DiscoverPanel({ user }) {
                                     </div>
                                 )}
                             </button>
-                        ))}
+                        );
+                        })}
                     </div>
                 </div>
                 <div className="col-md-8">
@@ -252,20 +274,42 @@ export default function DiscoverPanel({ user }) {
                                 {selectedOrg?.logo_url || selectedOrg?.image_url ? (
                                     <img src={selectedOrg.logo_url || selectedOrg.image_url} alt={selectedOrg?.name} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }} />
                                 ) : null}
-                                <div>
+                                <div className="flex-grow-1">
                                     <div className="text-body-emphasis">{selectedOrg?.name}</div>
-                                    <h4 className="mb-0">{selectedEvent.title}</h4>
+                                    <div className="d-flex align-items-center gap-2">
+                                        <h4 className="mb-0">{selectedEvent.title}</h4>
+                                        {(selectedEvent.is_registered || registeredEvents[selectedEvent.id]) && (
+                                            <span className={styles.detailRegisteredBadge}>
+                                                <i className="bi bi-check-circle-fill me-1"></i>
+                                                Registered
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                             {selectedEvent.image_url && (
-                                <img src={selectedEvent.image_url} alt={selectedEvent.title} className="img-fluid mb-3" />
+                                <img src={selectedEvent.image_url} alt={selectedEvent.title} className="img-fluid mb-3" style={{ borderRadius: '8px' }} />
                             )}
                             <p>{selectedEvent.description}</p>
                             <p className="mb-1"><strong>Location:</strong> {typeof selectedEvent.location === 'string' ? selectedEvent.location : (selectedEvent.location?.city || selectedEvent.location?.name || `${selectedEvent.location?.lat}, ${selectedEvent.location?.lon}`)}</p>
                             <p className="mb-1"><strong>Date & time:</strong> {new Date(selectedEvent.start_at).toLocaleString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
                             <p className="mb-1"><strong>Capacity:</strong> {selectedEvent.capacity}</p>
                             <div className="d-flex gap-2 mt-3">
-                                <button className="btn btn-primary" onClick={() => handleRegistration(selectedEvent.id)}>Register</button>
+                                {(selectedEvent.is_registered || registeredEvents[selectedEvent.id]) ? (
+                                    <button className="btn btn-success" disabled>
+                                        <i className="bi bi-check-circle me-2"></i>
+                                        Registered
+                                    </button>
+                                ) : (
+                                    <button 
+                                        className="btn btn-primary" 
+                                        onClick={async () => {
+                                            await handleRegistration(selectedEvent.id);
+                                        }}
+                                    >
+                                        Register
+                                    </button>
+                                )}
                                 <button className="btn btn-outline-secondary" onClick={() => setSelectedEvent(undefined)}>Clear</button>
                             </div>
                         </div>
@@ -279,10 +323,22 @@ export default function DiscoverPanel({ user }) {
             <div className="row g-3">
                 {events.filter(e => filterEventBySearch(e, searchQuery)).map(e => {
                     const orgData = orgDataMap[e.org_id];
+                    const isRegistered = e.is_registered || registeredEvents[e.id];
 
                     return (
                         <div key={e.id} className="col-md-6 col-lg-4">
-                            <div className={styles.eventCard} onClick={() => setSelectedEvent(e)}>
+                            <div 
+                                className={`${styles.eventCard} ${isRegistered ? styles.eventCardRegistered : ''}`}
+                                onClick={() => setSelectedEvent(e)}
+                            >
+                                {/* Registered Badge Overlay */}
+                                {isRegistered && (
+                                    <div className={styles.registeredBadge}>
+                                        <i className="bi bi-check-circle-fill me-1"></i>
+                                        Registered
+                                    </div>
+                                )}
+                                
                                 {e.image_url && (
                                     <div className={styles.eventCardImage}>
                                         <img src={e.image_url} alt={e.title} />
@@ -337,10 +393,45 @@ export default function DiscoverPanel({ user }) {
                                     </div>
                                     
                                     {/* Capacity */}
-                                    <div className="d-flex align-items-center gap-2">
+                                    <div className="d-flex align-items-center gap-2 mb-3">
                                         <i className="bi bi-people" style={{ fontSize: '0.875rem', color: '#667eea' }}></i>
                                         <small>{e.capacity} spots</small>
                                     </div>
+                                    
+                                    {/* Register Button */}
+                                    <button
+                                        className={`${styles.registerButton} ${isRegistered ? styles.registered : ''}`}
+                                        onClick={async (ev) => {
+                                            ev.stopPropagation();
+                                            if (isRegistered) return;
+                                            
+                                            const btn = ev.currentTarget;
+                                            const originalHTML = btn.innerHTML;
+                                            btn.disabled = true;
+                                            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Registering...';
+                                            
+                                            try {
+                                                await handleRegistration(e.id);
+                                            } catch (err) {
+                                                console.error('Registration failed:', err);
+                                                btn.disabled = false;
+                                                btn.innerHTML = originalHTML;
+                                            }
+                                        }}
+                                        disabled={isRegistered}
+                                    >
+                                        {isRegistered ? (
+                                            <>
+                                                <i className="bi bi-check-circle me-2"></i>
+                                                Registered
+                                            </>
+                                        ) : (
+                                            <>
+                                                <i className="bi bi-calendar-plus me-2"></i>
+                                                Register
+                                            </>
+                                        )}
+                                    </button>
                                 </div>
                             </div>
                         </div>

@@ -215,7 +215,7 @@ export default function RegisteredEventCard({
                     data-bs-target="#register-info-modal"
                     style={{
                         padding: '0.5rem 1rem',
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        background: '#007bff',
                         border: 'none',
                         borderRadius: '8px',
                         color: '#fff',
@@ -227,10 +227,12 @@ export default function RegisteredEventCard({
                     }}
                     onMouseEnter={(e) => {
                         e.target.style.transform = 'translateY(-2px)';
-                        e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
+                        e.target.style.background = '#0056b3';
+                        e.target.style.boxShadow = '0 4px 12px rgba(0, 123, 255, 0.3)';
                     }}
                     onMouseLeave={(e) => {
                         e.target.style.transform = 'translateY(0)';
+                        e.target.style.background = '#007bff';
                         e.target.style.boxShadow = 'none';
                     }}
                 >
