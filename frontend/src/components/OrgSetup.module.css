@@ -5,6 +5,8 @@
     align-items: center;
     justify-content: center;
     padding: 2rem;
+    overflow-y: auto;
+    height: 100%;
 }
 
 .setupCard {

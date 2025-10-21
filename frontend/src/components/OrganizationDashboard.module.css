@@ -1,4 +1,6 @@
 .pageWrapper {
     min-height: 100vh;
     background-color: #212529;
+    overflow-y: auto;
+    height: 100%;
 }

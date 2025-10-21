@@ -75,7 +75,7 @@ export default function UserCredentialForm({
     }, [state?.success, isSignin, navigate]);
 
     return (
-        <div className="d-flex flex-column gap-5 align-items-center justify-content-start flex-grow-1 ">
+        <div className="d-flex flex-column gap-5 align-items-center justify-content-start flex-grow-1" style={{ overflowY: 'auto', height: '100%' }}>
             <h1 className="mt-5 text-body-emphasis">{title}</h1>
             <form 
                 className={"card " + styles.credentialCard}
