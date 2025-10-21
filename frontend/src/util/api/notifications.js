@@ -62,3 +62,39 @@ export async function countUnreadNotifications(userId) {
   if (error) throw error;
   return count;
 }
+
+// Subscribe to realtime changes for a user's notifications
+// Returns an unsubscribe function
+export function subscribeToNotifications(userId, { onInsert, onUpdate, onDelete } = {}) {
+  if (!userId) return () => {};
+  const channel = supabase.channel(`notif-user-${userId}`)
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'notifications',
+      filter: `user_id=eq.${userId}`,
+    }, (payload) => {
+      onInsert?.(payload.new);
+    })
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'notifications',
+      filter: `user_id=eq.${userId}`,
+    }, (payload) => {
+      onUpdate?.(payload.new, payload.old);
+    })
+    .on('postgres_changes', {
+      event: 'DELETE',
+      schema: 'public',
+      table: 'notifications',
+      filter: `user_id=eq.${userId}`,
+    }, (payload) => {
+      onDelete?.(payload.old);
+    })
+    .subscribe();
+
+  return () => {
+    try { supabase.removeChannel(channel); } catch {}
+  };
+}

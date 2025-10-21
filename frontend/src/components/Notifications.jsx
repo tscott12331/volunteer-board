@@ -9,7 +9,8 @@ import {
   markNotificationRead,
   markNotificationUnread,
   deleteNotification,
-  markAllNotificationsRead
+  markAllNotificationsRead,
+  subscribeToNotifications
 } from '../util/api/notifications';
 
 // Lightweight Notifications overlay component
@@ -38,6 +39,24 @@ export default function Notifications({ user, onClose }) {
       .finally(() => setLoading(false));
     return () => { mounted = false; };
   }, [user.id]);
+
+  // Realtime subscription: keep list live-updated while open
+  useEffect(() => {
+    if (!user?.id) return;
+    const unsub = subscribeToNotifications(user.id, {
+      onInsert: (n) => {
+        // Prepend new notification
+        setNotifications(prev => [n, ...prev]);
+      },
+      onUpdate: (n) => {
+        setNotifications(prev => prev.map(x => x.id === n.id ? n : x));
+      },
+      onDelete: (old) => {
+        setNotifications(prev => prev.filter(x => x.id !== old.id));
+      }
+    });
+    return () => { unsub?.(); };
+  }, [user?.id]);
 
   // Infinite scroll
   const handleScroll = useCallback(e => {

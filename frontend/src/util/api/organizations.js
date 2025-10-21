@@ -72,7 +72,7 @@ export async function fetchOrganizationById(orgId) {
             .eq('id', orgId)
             .single();
 
-        if (res.error) return APIError(res.error.message);
+    if (res.error) return APIError(res.error.message || 'Failed to update event status');
 
         return APISuccess(res.data);
     } catch (error) {
@@ -219,6 +219,8 @@ export async function updateEventStatus(eventId, status) {
             .single();
 
         if (res.error) return APIError(res.error.message);
+
+        // Notifications are created by a database trigger on publish; no RPC needed here
 
         return APISuccess(res.data);
     } catch (error) {
