@@ -446,7 +446,14 @@ export default function OrgEventDetailPanel({ organization, event, mode = 'view'
       </div>
 
       {showCheckIn && (
-        <CheckInModal event={event} onClose={() => setShowCheckIn(false)} />
+        <CheckInModal 
+          event={event} 
+          onClose={() => setShowCheckIn(false)} 
+          onCheckInComplete={() => {
+            // Ask parent to refresh counts and reselect this event
+            if (onSaved && event?.id) onSaved(event.id);
+          }}
+        />
       )}
     </aside>
   );

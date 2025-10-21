@@ -18,6 +18,7 @@ export default function CheckInModal({ event, onClose, onCheckInComplete }) {
     const [statusFilter, setStatusFilter] = useState('');
     const [page, setPage] = useState(0);
     const [limit] = useState(25); // page size
+    const [changed, setChanged] = useState(false); // track if any check-in toggles occurred
 
     useEffect(() => {
         loadRegistrations();
@@ -55,11 +56,18 @@ export default function CheckInModal({ event, onClose, onCheckInComplete }) {
             setToast(newStatus === 'checked_in' ? 'Checked in!' : 'Unchecked!');
             setTimeout(() => setToast(null), 2000);
             await loadRegistrations();
-            if (onCheckInComplete) onCheckInComplete();
+            setChanged(true);
         } else {
             alert('Failed to update check-in status: ' + result.message);
         }
         setUpdating(false);
+    };
+
+    const handleClose = () => {
+        if (changed && onCheckInComplete) {
+            onCheckInComplete(); // refresh parent counts once when closing
+        }
+        onClose && onClose();
     };
 
 
@@ -71,13 +79,13 @@ export default function CheckInModal({ event, onClose, onCheckInComplete }) {
         : [];
 
     return (
-        <div className={styles.modalOverlay} onClick={onClose}>
+        <div className={styles.modalOverlay} onClick={handleClose}>
             <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
                 <div className={styles.modalHeader}>
                     <h2 className={styles.modalTitle}>Check-In: {event.title}</h2>
                     <button
                         className={styles.closeButton}
-                        onClick={onClose}
+                        onClick={handleClose}
                         type="button"
                     >
                         ×
