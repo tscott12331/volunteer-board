@@ -1,6 +1,7 @@
 import styles from './DiscoverPanel.module.css';
 
 import { useEffect, useState } from "react";
+import { useNavigate } from 'react-router-dom';
 import { fetchEvents, registerForEvent, fetchOrganization } from "../util/api/events";
 import { formatDateAtTime } from '../util/date';
 
@@ -32,6 +33,7 @@ export default function DiscoverPanel({ user }) {
     const [selectedOrg, setSelectedOrg] = useState(undefined);
     // hash containing the ids of registered events
     const [registeredEvents, setRegisteredEvents] = useState({});
+    const navigate = useNavigate();
     
     // Store organization data for grid view
     const [orgDataMap, setOrgDataMap] = useState({});
@@ -148,7 +150,7 @@ export default function DiscoverPanel({ user }) {
     }
 
     return (
-            <>
+            <div className='DiscoverPanel-component'>
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h2 className="mb-0 fw-bold text-white">Discover</h2>
                 <div className="d-flex gap-2">
@@ -304,6 +306,10 @@ export default function DiscoverPanel({ user }) {
                                     <button 
                                         className="btn btn-primary" 
                                         onClick={async () => {
+                                            if (!user) {
+                                                navigate('/signin');
+                                                return;
+                                            }
                                             await handleRegistration(selectedEvent.id);
                                         }}
                                     >
@@ -411,6 +417,12 @@ export default function DiscoverPanel({ user }) {
                                             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Registering...';
                                             
                                             try {
+                                                if (!user) {
+                                                    navigate('/signin');
+                                                    btn.disabled = false;
+                                                    btn.innerHTML = originalHTML;
+                                                    return;
+                                                }
                                                 await handleRegistration(e.id);
                                             } catch (err) {
                                                 console.error('Registration failed:', err);
@@ -448,6 +460,6 @@ export default function DiscoverPanel({ user }) {
             isNewlyRegistered={registeredEvents[selectedEvent?.id] ?? false}
             onRegister={handleRegistration}
         /> */}
-        </>
+        </div>
     );
 }

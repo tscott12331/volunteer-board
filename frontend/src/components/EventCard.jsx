@@ -50,11 +50,23 @@ export default function EventCard({
 
     const handleRegister = async () => {
         // check user session, if not signed in, navigate to sign in page
-        const { data: { session } } = await supabase.auth.getSession();
+        let session = null;
+        try {
+            const result = await supabase.auth.getSession();
+            // handle different shapes
+            session = result?.data?.session ?? result?.session ?? null;
+        } catch (err) {
+            session = null;
+        }
         if (!session?.user) {
-            // redirect to sign in
-            navigate('/signin');
-            return;
+            // try react-router navigation first, fallback to window.location
+            try {
+                navigate('/signin');
+                return;
+            } catch (e) {
+                window.location.href = '/signin';
+                return;
+            }
         }
 
         // optimistic hide
@@ -104,42 +116,42 @@ export default function EventCard({
     }
 
     return (
-        <>
-        <div className={"card " + styles.openingCard}>
-            <div className="card-header d-flex justify-content-between align-items-center">
-                <h5 className="card-title mb-0">{title}</h5>
-                <div>
-                    {showRegister && !(event.is_registered || isNewlyRegistered) ? (
-                        <button
-                            type="button"
-                            className="btn btn-primary"
-                            onClick={handleRegister}
-                        >
-                            Register
-                        </button>
-                    ) : (
-                        <p className="m-0 d-inline-block text-secondary-emphasis">You are registered for this event</p>
+        <div className='EventCard-component'>
+            <div className={"card " + styles.openingCard}>
+                <div className="card-header d-flex justify-content-between align-items-center">
+                    <h5 className="card-title mb-0">{title}</h5>
+                    <div>
+                        {showRegister && !(event.is_registered || isNewlyRegistered) ? (
+                            <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={handleRegister}
+                            >
+                                Register
+                            </button>
+                        ) : (
+                            <p className="m-0 d-inline-block text-secondary-emphasis">You are registered for this event</p>
+                        )}
+                    </div>
+                </div>
+                {image_url &&
+                <img src={image_url} className={"text-center card-img-top " + styles.cardImg} alt="Project photos" />
+                }
+                <div className="card-body">
+                    <p className="mb-1"><span className="text-body-emphasis">Organization:</span> {orgName}</p>
+                    <p className="card-text">{description}</p>
+                    {/* event location not yet implemented in DB */}
+                    {event.location && (
+                        <p className="mb-1"><span className="text-body-emphasis"><i className="fa-solid fa-location-dot"></i></span> {typeof event.location === 'string' ? event.location : (event.location?.name || `${event.location?.lat}, ${event.location?.lon}`)}</p>
                     )}
+                    <p className="mb-1"><span className="text-body-emphasis"><i className="fa-solid fa-clock"></i></span> {hoursBetween(event.start_at, event.end_at)} Hours</p>
+                    
+                </div>
+                <div className="card-footer d-flex justify-content-between">
+                    <span><i className="fa-solid fa-calendar-days"></i> {startDate.toLocaleDateString()}</span>
+                    <span>{formatTime(startDate.toLocaleTimeString())}</span>
                 </div>
             </div>
-            {image_url &&
-            <img src={image_url} className={"text-center card-img-top " + styles.cardImg} alt="Project photos" />
-            }
-            <div className="card-body">
-                <p className="mb-1"><span className="text-body-emphasis">Organization:</span> {orgName}</p>
-                <p className="card-text">{description}</p>
-                {/* event location not yet implemented in DB */}
-                {event.location && (
-                    <p className="mb-1"><span className="text-body-emphasis"><i className="fa-solid fa-location-dot"></i></span> {typeof event.location === 'string' ? event.location : (event.location?.name || `${event.location?.lat}, ${event.location?.lon}`)}</p>
-                )}
-                <p className="mb-1"><span className="text-body-emphasis"><i className="fa-solid fa-clock"></i></span> {hoursBetween(event.start_at, event.end_at)} Hours</p>
-                
-            </div>
-            <div className="card-footer d-flex justify-content-between">
-                <span><i className="fa-solid fa-calendar-days"></i> {startDate.toLocaleDateString()}</span>
-                <span>{formatTime(startDate.toLocaleTimeString())}</span>
-            </div>
         </div>
-        </>
     )
 }
