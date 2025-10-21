@@ -227,3 +227,36 @@
         grid-template-columns: 1fr 1fr 1fr 1fr;
     }
 }
+
+/* Split-pill control for list/grid view */
+.splitPill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.02);
+}
+.pillBtn {
+    padding: 0.28rem 0.55rem;
+    min-width: 36px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: #cbd5e1;
+    cursor: pointer;
+}
+.pillBtn + .pillBtn {
+    border-left: 1px solid rgba(255,255,255,0.03);
+}
+.pillBtnActive {
+    background: linear-gradient(90deg, rgba(102,126,234,0.95), rgba(79,70,229,0.95));
+    color: #fff !important;
+}
+.pillIcon {
+    font-size: 1rem;
+}

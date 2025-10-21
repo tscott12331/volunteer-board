@@ -21,12 +21,8 @@ export default function RegistrationsPanel({
     const [viewMode, setViewMode] = useState('list'); // 'list' or 'grid'
     const [searchValue, setSearchValue] = useState("");
     const [searchQuery, setSearchQuery] = useState(undefined);
-    const [filters, setFilters] = useState({
-        startDate: '',
-        endDate: '',
-        orgId: 'all',
-        upcomingOnly: true,
-    });
+    // simplified view filter: 'upcoming' | 'all' | 'finished'
+    const [viewFilter, setViewFilter] = useState('upcoming');
 
     // currently selected event that will be displayed in detail panel
     const [selectedEvent, setSelectedEvent] = useState(undefined);
@@ -134,17 +130,16 @@ export default function RegistrationsPanel({
 
     // Derived: filtered and sorted events (soonest first)
     const displayedEvents = useMemo(() => {
+        const now = new Date();
         const arr = (events || []).filter(e => {
             if (searchQuery && !e.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-            if (filters.orgId !== 'all' && e.organization_id !== filters.orgId) return false;
             const d = new Date(e.start_at);
-            if (filters.startDate && d < new Date(filters.startDate)) return false;
-            if (filters.endDate && d > new Date(filters.endDate + 'T23:59:59')) return false;
-            if (filters.upcomingOnly && d < new Date()) return false;
+            if (viewFilter === 'upcoming' && d < now) return false;
+            if (viewFilter === 'finished' && d >= now) return false;
             return true;
         });
         return arr.sort((a, b) => new Date(a.start_at) - new Date(b.start_at));
-    }, [events, searchQuery, filters]);
+    }, [events, searchQuery, viewFilter]);
 
     const hoursBetween = (startAt, endAt) => {
         try {
@@ -170,140 +165,87 @@ export default function RegistrationsPanel({
     }
 
     return (
-        <>
-            <h2 className="mb-4" style={{ 
+        <div className="RegistrationsPanel-component">
+            <h2 className="mb-4 d-flex justify-content-between align-items-center" style={{ 
                 color: '#fff',
                 fontSize: '1.75rem',
                 fontWeight: 700
             }}>
                 My Registrations
+                <div className={styles.splitPill}>
+                    <button
+                        type="button"
+                        onClick={() => setViewMode('list')}
+                        className={`${styles.pillBtn} ${viewMode === 'list' ? styles.pillBtnActive : ''}`}
+                        title="List view"
+                    >
+                        <i className={`bi bi-list-ul ${styles.pillIcon}`} />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setViewMode('grid')}
+                        className={`${styles.pillBtn} ${viewMode === 'grid' ? styles.pillBtnActive : ''}`}
+                        title="Grid view"
+                    >
+                        <i className={`bi bi-grid-3x3-gap ${styles.pillIcon}`} />
+                    </button>
+                </div>
             </h2>
 
-            {/* Search Bar */}
-            <div className="d-flex gap-2 align-items-center mb-3">
-                <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Search for events"
-                    value={searchValue}
-                    onChange={onSearchInputChange}
-                    onKeyDown={onSearchInputKeyDown}
-                    style={{
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        color: '#fff',
-                        borderRadius: '8px'
-                    }}
-                />
-                <button 
-                    type="button" 
-                    className="btn btn-primary" 
-                    onClick={search}
-                    style={{
-                        background: '#007bff',
-                        border: 'none',
-                        padding: '0.5rem 1.5rem'
-                    }}
-                >
-                    <i className="bi bi-search me-2"></i>
-                    Search
-                </button>
-            </div>
-
-            {/* View Toggle Buttons (Top Right) */}
-            <div className="d-flex justify-content-end gap-2 mb-3">
-                <button
-                    onClick={() => setViewMode('list')}
-                    className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                    style={{
-                        background: viewMode === 'list' ? '#007bff' : 'rgba(255, 255, 255, 0.05)',
-                        border: viewMode === 'list' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
-                        color: '#fff',
-                        padding: '0.5rem 1rem'
-                    }}
-                    title="List view"
-                >
-                    <i className="bi bi-list-ul"></i> List
-                </button>
-                <button
-                    onClick={() => setViewMode('grid')}
-                    className={`btn ${viewMode === 'grid' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                    style={{
-                        background: viewMode === 'grid' ? '#007bff' : 'rgba(255, 255, 255, 0.05)',
-                        border: viewMode === 'grid' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
-                        color: '#fff',
-                        padding: '0.5rem 1rem'
-                    }}
-                    title="Grid view"
-                >
-                    <i className="bi bi-grid-3x3-gap"></i> Grid
-                </button>
-            </div>
-
-            {/* Filters */}
-            <div className="row g-2 mb-3 align-items-end">
-                <div className="col-12 col-md-3">
-                    <label className="form-label text-secondary" style={{ fontSize: '0.85rem' }}>Start date</label>
+            {/* Search Bar (combined input + icon button) */}
+            <div className="mb-3" style={{ maxWidth: '720px' }}>
+                <div className="input-group">
                     <input
-                        type="date"
+                        type="text"
                         className="form-control"
-                        value={filters.startDate}
-                        onChange={(e) => setFilters(f => ({ ...f, startDate: e.target.value }))}
+                        placeholder="Search for events"
+                        value={searchValue}
+                        onChange={onSearchInputChange}
+                        onKeyDown={onSearchInputKeyDown}
                         style={{
                             background: 'rgba(255, 255, 255, 0.05)',
                             border: '1px solid rgba(255, 255, 255, 0.1)',
                             color: '#fff',
-                            borderRadius: '8px'
+                            // make the input flush with the appended button
+                            borderRadius: '8px 0 0 8px'
                         }}
                     />
-                </div>
-                <div className="col-12 col-md-3">
-                    <label className="form-label text-secondary" style={{ fontSize: '0.85rem' }}>End date</label>
-                    <input
-                        type="date"
-                        className="form-control"
-                        value={filters.endDate}
-                        onChange={(e) => setFilters(f => ({ ...f, endDate: e.target.value }))}
-                        style={{
-                            background: 'rgba(255, 255, 255, 0.05)',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                            color: '#fff',
-                            borderRadius: '8px'
-                        }}
-                    />
-                </div>
-                <div className="col-12 col-md-3">
-                    <label className="form-label text-secondary" style={{ fontSize: '0.85rem' }}>Organization</label>
-                    <select
-                        className="form-select"
-                        value={filters.orgId}
-                        onChange={(e) => setFilters(f => ({ ...f, orgId: e.target.value }))}
-                        style={{
-                            background: 'rgba(255, 255, 255, 0.05)',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                            color: '#fff',
-                            borderRadius: '8px'
-                        }}
+                    <button
+                        className="btn btn-primary"
+                        type="button"
+                        onClick={search}
+                        title="Search"
+                        style={{ borderRadius: '0 8px 8px 0', padding: '0.45rem 0.7rem' }}
                     >
-                        <option value="all">All organizations</option>
-                        {Object.entries(orgDataMap).map(([id, org]) => (
-                            <option key={id} value={id}>{org?.name || id}</option>
-                        ))}
-                    </select>
+                        <i className="bi bi-search" />
+                    </button>
                 </div>
-                <div className="col-auto">
-                    <div className="form-check form-switch mt-4">
-                        <input
-                            className="form-check-input"
-                            type="checkbox"
-                            id="upcomingOnlySwitch"
-                            checked={filters.upcomingOnly}
-                            onChange={(e) => setFilters(f => ({ ...f, upcomingOnly: e.target.checked }))}
-                        />
-                        <label className="form-check-label" htmlFor="upcomingOnlySwitch">Upcoming only</label>
-                    </div>
-                </div>
-                <div className="col-auto mt-4">
+            </div>
+
+            {/* Quick view filter: Upcoming / All / Finished */}
+            <div className="d-flex gap-2 mb-3">
+                <button
+                    className={`btn ${viewFilter === 'upcoming' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                    onClick={() => setViewFilter('upcoming')}
+                    style={{ padding: '0.4rem 0.8rem' }}
+                >
+                    Upcoming
+                </button>
+                <button
+                    className={`btn ${viewFilter === 'all' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                    onClick={() => setViewFilter('all')}
+                    style={{ padding: '0.4rem 0.8rem' }}
+                >
+                    All
+                </button>
+                <button
+                    className={`btn ${viewFilter === 'finished' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                    onClick={() => setViewFilter('finished')}
+                    style={{ padding: '0.4rem 0.8rem' }}
+                >
+                    Finished
+                </button>
+                <div className="ms-auto">
                     <small className="text-secondary">Sorted: Soonest first</small>
                 </div>
             </div>
@@ -314,34 +256,55 @@ export default function RegistrationsPanel({
                     <div className={"row mt-4 " + styles.eventsWrappers}>
                         <div className="col-md-4">
                             <div className={styles.eventList}>
-                                {events.filter(e => filterEventBySearch(e, searchQuery)).map(e => (
+                                {events.filter(e => filterEventBySearch(e, searchQuery)).map(e => {
+                                    const org = orgDataMap[e.organization_id];
+                                    return (
                                     <button
                                         key={e.id}
                                         type="button"
                                         className={`${styles.eventListItem} ${selectedEvent?.id === e.id ? styles.active : ''}`}
                                         onClick={() => setSelectedEvent(e)}
                                     >
-                                        <div className="d-flex w-100 justify-content-between align-items-start mb-2">
-                                            <h6 className="mb-0 fw-semibold">{e.title}</h6>
-                                            <small className={styles.dateText}>{new Date(e.start_at).toLocaleDateString()}</small>
-                                        </div>
-                                        <div className="d-flex align-items-center gap-2 mb-2">
-                                            <i className="bi bi-clock text-muted" style={{ fontSize: '0.875rem' }}></i>
-                                            <small className="text-muted">{hoursBetween(e.start_at, e.end_at)} hrs</small>
-                                        </div>
-                                        {e.location && (
-                                            <div className="d-flex align-items-center gap-2">
-                                                <i className="bi bi-geo-alt text-muted" style={{ fontSize: '0.875rem' }}></i>
-                                                <small className="text-muted">{typeof e.location === 'string' ? e.location : e.location?.city}</small>
+                                        <div className="d-flex w-100 gap-3 align-items-start">
+                                            {/* Thumbnail */}
+                                            <div style={{ width: 72, height: 72, flex: '0 0 72px', borderRadius: 8, overflow: 'hidden', background: 'rgba(255,255,255,0.02)' }}>
+                                                {e.image_url ? (
+                                                    <img src={e.image_url} alt={e.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                ) : org?.logo_url || org?.image_url ? (
+                                                    <img src={org.logo_url || org.image_url} alt={org?.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                ) : (
+                                                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(102,126,234,0.08)', color: '#667eea', fontWeight: 700 }}>
+                                                        {org?.name?.[0] || e.title?.[0] || '?'}
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
+
+                                            <div className="flex-grow-1 text-start">
+                                                <div className="d-flex w-100 justify-content-between align-items-start mb-1">
+                                                    <div className="d-flex align-items-center gap-2">
+                                                        <h6 className="mb-0 fw-semibold">{e.title}</h6>
+                                                    </div>
+                                                </div>
+
+                                                <div className="d-flex align-items-center gap-3" style={{ fontSize: '0.9rem' }}>
+                                                    <div className="d-flex align-items-center gap-2">
+                                                        <i className="bi bi-clock text-muted" style={{ fontSize: '0.95rem' }}></i>
+                                                        <small className="text-muted">{hoursBetween(e.start_at, e.end_at)} hrs</small>
+                                                    </div>
+                                                    <div className="ms-auto">
+                                                        <small className={styles.dateText}>{new Date(e.start_at).toLocaleDateString()}</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </button>
-                                ))}
+                                );
+                                })}
                             </div>
                         </div>
-                        <div className="col-md-8">
+                        <div className="EventInfo-container col-md-8">
                             {selectedEvent ? (
-                                <div className={"card p-3 shadow-sm " + styles.detailCard + ' ' + styles.stickyDetail}>
+                                <div className={"EventInfo-card card p-3 shadow-sm EventInfo-container" + styles.detailCard + ' ' + styles.stickyDetail}>
                                     <div className="d-flex gap-3 align-items-center mb-2">
                                         {selectedOrg?.logo_url || selectedOrg?.image_url ? (
                                             <img src={selectedOrg.logo_url || selectedOrg.image_url} alt={selectedOrg?.name} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }} />
@@ -364,12 +327,6 @@ export default function RegistrationsPanel({
                                             onClick={() => handleUnregister(selectedEvent.id)}
                                         >
                                             Unregister
-                                        </button>
-                                        <button 
-                                            className="btn btn-outline-secondary" 
-                                            onClick={() => setSelectedEvent(undefined)}
-                                        >
-                                            Clear
                                         </button>
                                     </div>
                                 </div>
@@ -492,6 +449,6 @@ export default function RegistrationsPanel({
                     <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: 0 }}>Discover events and start making a difference!</p>
                 </div>
             )}
-        </>
+        </div>
     );
 }

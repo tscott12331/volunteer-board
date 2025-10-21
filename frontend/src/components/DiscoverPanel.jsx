@@ -153,34 +153,22 @@ export default function DiscoverPanel({ user }) {
             <div className='DiscoverPanel-component'>
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h2 className="mb-0 fw-bold text-white">Discover</h2>
-                <div className="d-flex gap-2">
-                    <button 
-                        type="button" 
-                        className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                <div className={styles.splitPill}>
+                    <button
+                        type="button"
                         onClick={() => setViewMode('list')}
+                        className={`${styles.pillBtn} ${viewMode === 'list' ? styles.pillBtnActive : ''}`}
                         title="List view"
-                        style={{
-                            background: viewMode === 'list' ? '#007bff' : 'rgba(255, 255, 255, 0.05)',
-                            border: viewMode === 'list' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
-                            color: '#fff',
-                            padding: '0.5rem 1rem'
-                        }}
                     >
-                        <i className="bi bi-list-ul"></i> List
+                        <i className={`bi bi-list-ul ${styles.pillIcon}`} />
                     </button>
-                    <button 
-                        type="button" 
-                        className={`btn ${viewMode === 'grid' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                    <button
+                        type="button"
                         onClick={() => setViewMode('grid')}
+                        className={`${styles.pillBtn} ${viewMode === 'grid' ? styles.pillBtnActive : ''}`}
                         title="Grid view"
-                        style={{
-                            background: viewMode === 'grid' ? '#007bff' : 'rgba(255, 255, 255, 0.05)',
-                            border: viewMode === 'grid' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
-                            color: '#fff',
-                            padding: '0.5rem 1rem'
-                        }}
                     >
-                        <i className="bi bi-grid-3x3-gap"></i> Grid
+                        <i className={`bi bi-grid-3x3-gap ${styles.pillIcon}`} />
                     </button>
                 </div>
             </div>
