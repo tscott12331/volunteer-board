@@ -1,0 +1,81 @@
+/* Sticky detail panel for organization event view/edit */
+.panel {
+  position: sticky;
+  top: 72px; /* below navbar */
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 20px;
+  color: #e5e7eb;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.badge {
+  margin-left: 8px;
+}
+
+.actionsRow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.metaRow {
+  color: #adb5bd;
+  font-size: 0.95rem;
+}
+
+.stats {
+  color: #adb5bd;
+  font-size: 0.9rem;
+}
+
+.sectionTitle {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-top: 8px;
+}
+
+/* Editor form styles (reuse modal form spacing) */
+.form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 991px) {
+  .panel {
+    position: static;
+  }
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+}

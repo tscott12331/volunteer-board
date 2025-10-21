@@ -1,5 +1,6 @@
 .eventCard {
-    background: #2c3034;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 8px;
     padding: 1.5rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
@@ -7,7 +8,20 @@
     justify-content: space-between;
     align-items: center;
     gap: 1rem;
-    border: 1px solid #3a3f44;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.eventCard:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: #007bff;
+    transform: translateX(4px);
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.2);
+}
+
+.eventCard:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
 }
 
 .eventHeader {
