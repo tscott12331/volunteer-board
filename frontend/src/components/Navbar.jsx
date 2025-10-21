@@ -134,8 +134,10 @@ export default function Navbar({
                                 onClick={() => setShowProfileMenu(v => !v)}
                                 aria-label="Profile menu"
                             >
-                                {getAvatar()}
+                                {/* {getAvatar()} */}
+                                <i className="fa-regular fa-user"></i>
                                 <i className="bi bi-caret-down ms-1 text-secondary" />
+                                
                             </button>
                             {showProfileMenu && (
                                 <ul className="dropdown-menu dropdown-menu-end show mt-2" style={{ minWidth: 160, right: 0, left: 'auto' }}>

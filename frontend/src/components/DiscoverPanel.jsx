@@ -316,7 +316,6 @@ export default function DiscoverPanel({ user }) {
                                         Register
                                     </button>
                                 )}
-                                <button className="btn btn-outline-secondary" onClick={() => setSelectedEvent(undefined)}>Clear</button>
                             </div>
                         </div>
                     ) : (
