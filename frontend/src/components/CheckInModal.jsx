@@ -18,6 +18,7 @@ export default function CheckInModal({ event, onClose, onCheckInComplete }) {
     const [statusFilter, setStatusFilter] = useState('');
     const [page, setPage] = useState(0);
     const [limit] = useState(25); // page size
+    const [changed, setChanged] = useState(false); // track if any check-in toggles occurred
 
     useEffect(() => {
         loadRegistrations();
@@ -55,29 +56,36 @@ export default function CheckInModal({ event, onClose, onCheckInComplete }) {
             setToast(newStatus === 'checked_in' ? 'Checked in!' : 'Unchecked!');
             setTimeout(() => setToast(null), 2000);
             await loadRegistrations();
-            if (onCheckInComplete) onCheckInComplete();
+            setChanged(true);
         } else {
             alert('Failed to update check-in status: ' + result.message);
         }
         setUpdating(false);
     };
 
+    const handleClose = () => {
+        if (changed && onCheckInComplete) {
+            onCheckInComplete(); // refresh parent counts once when closing
+        }
+        onClose && onClose();
+    };
+
 
     const filteredRegistrations = Array.isArray(registrations)
         ? registrations.filter(reg => {
-            const name = reg.display_name || reg.full_name || '';
-            return name.toLowerCase().includes(searchQuery.toLowerCase());
+            const combined = `${reg.full_name || ''} ${reg.display_name || ''}`.trim();
+            return combined.toLowerCase().includes(searchQuery.toLowerCase());
         })
         : [];
 
     return (
-        <div className={styles.modalOverlay} onClick={onClose}>
+        <div className={styles.modalOverlay} onClick={handleClose}>
             <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
                 <div className={styles.modalHeader}>
                     <h2 className={styles.modalTitle}>Check-In: {event.title}</h2>
                     <button
                         className={styles.closeButton}
-                        onClick={onClose}
+                        onClick={handleClose}
                         type="button"
                     >
                         ×
@@ -123,7 +131,10 @@ export default function CheckInModal({ event, onClose, onCheckInComplete }) {
                         </div>
                     ) : (
                         filteredRegistrations.map(registration => {
-                            const name = registration.display_name || registration.full_name || 'Unknown';
+                            const full = (registration.full_name || '').trim();
+                            const alias = (registration.display_name || '').trim();
+                            const primary = full || alias || 'Unknown';
+                            const secondary = full && alias && alias !== full ? alias : null;
                             const isCheckedIn = registration.status === 'checked_in';
                             const regTime = registration.created_at ? new Date(registration.created_at).toLocaleString() : null;
                             return (
@@ -132,15 +143,18 @@ export default function CheckInModal({ event, onClose, onCheckInComplete }) {
                                         {registration.avatar_url ? (
                                             <img 
                                                 src={registration.avatar_url} 
-                                                alt={name}
+                                                alt={primary}
                                                 className={styles.avatar}
                                             />
                                         ) : (
                                             <div className={styles.avatarPlaceholder}>
-                                                {name.charAt(0).toUpperCase()}
+                                                {primary.charAt(0).toUpperCase()}
                                             </div>
                                         )}
-                                        <span className={styles.volunteerName}>{name}</span>
+                                        <span className={styles.volunteerName}>
+                                            {primary}
+                                            {secondary && <span className="text-muted ms-1">({secondary})</span>}
+                                        </span>
                                         {regTime && (
                                             <span className={styles.regTime}>Registered: {regTime}</span>
                                         )}
