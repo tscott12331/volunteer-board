@@ -1,0 +1,121 @@
+/* Grid View Styles */
+.eventCard {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.eventCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.3);
+}
+
+.eventCardImage {
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.eventCardImage img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.eventCard:hover .eventCardImage img {
+    transform: scale(1.05);
+}
+
+.eventCardBody {
+    padding: 1.25rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.eventCardTitle {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 0.75rem;
+    line-height: 1.3;
+}
+
+.eventCardDescription {
+    color: #9ca3af;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+    flex: 1;
+}
+
+.statusBadge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.statusRegistered {
+    background: rgba(25, 135, 84, 0.15);
+    color: #5dd3a3;
+    border: 1px solid rgba(25, 135, 84, 0.3);
+}
+
+/* List View Styles */
+.eventList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.eventListItem {
+    padding: 1.25rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.eventListItem:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.1);
+    transform: translateX(4px);
+}
+
+.eventListContent {
+    flex: 1;
+}
+
+.eventListTitle {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 0.5rem;
+}
+
+.eventListDate {
+    color: #9ca3af;
+    font-size: 0.875rem;
+}
+
+.eventListActions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}

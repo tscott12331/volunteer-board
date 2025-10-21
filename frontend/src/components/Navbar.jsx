@@ -112,8 +112,35 @@ export default function Navbar({
                 </div>
 
                 {/* Center: Main nav */}
-                <div className="d-none d-md-flex gap-3 align-items-center">
-                    <Link className={`nav-link${location.pathname === '/' ? ' active' : ''}`} to="/">Home</Link>
+                <div className="d-none d-md-flex gap-4 align-items-center">
+                    <Link 
+                        className={`nav-link${location.pathname === '/' ? ' active' : ''}`} 
+                        to="/"
+                        style={{
+                            fontSize: '1rem',
+                            fontWeight: 500,
+                            color: location.pathname === '/' ? '#fff' : '#9ca3af',
+                            textDecoration: 'none',
+                            padding: '0.5rem 1rem',
+                            borderRadius: '6px',
+                            transition: 'all 0.2s ease',
+                            backgroundColor: location.pathname === '/' ? 'rgba(102, 126, 234, 0.1)' : 'transparent'
+                        }}
+                        onMouseEnter={(e) => {
+                            if (location.pathname !== '/') {
+                                e.target.style.color = '#fff';
+                                e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (location.pathname !== '/') {
+                                e.target.style.color = '#9ca3af';
+                                e.target.style.backgroundColor = 'transparent';
+                            }
+                        }}
+                    >
+                        Home
+                    </Link>
                     {/* Add more nav links here if needed */}
                 </div>
 
