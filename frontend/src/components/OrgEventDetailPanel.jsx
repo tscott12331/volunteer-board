@@ -99,7 +99,40 @@ export default function OrgEventDetailPanel({ organization, event, mode = 'view'
 
   const handlePublishToggle = async () => {
     if (!event?.id) return;
+    
     const newStatus = event.status === 'published' ? 'draft' : 'published';
+    
+    // Confirm unpublish action
+    if (newStatus === 'draft') {
+      if (!confirm('Unpublish this event? It will no longer be visible to volunteers.')) {
+        return;
+      }
+    }
+    
+    const res = await updateEventStatus(event.id, newStatus);
+    if (!res.success) {
+      alert('Failed to update status: ' + (res.error || 'Unknown error'));
+      return;
+    }
+    onSaved && onSaved(event.id);
+  };
+
+  const handleStatusChange = async (newStatus) => {
+    if (!event?.id || !newStatus) return;
+    
+    // Confirmation dialogs for specific actions
+    if (newStatus === 'cancelled') {
+      const reason = prompt('Cancel this event? Optionally provide a reason that will be sent to registered volunteers:');
+      if (reason === null) return; // User clicked cancel
+      // TODO: In future, send cancellation notifications to registered users with reason
+    }
+    
+    if (newStatus === 'completed') {
+      if (!confirm('Mark this event as completed? This action cannot be undone.')) {
+        return;
+      }
+    }
+    
     const res = await updateEventStatus(event.id, newStatus);
     if (!res.success) {
       alert('Failed to update status: ' + (res.error || 'Unknown error'));
@@ -425,24 +458,92 @@ export default function OrgEventDetailPanel({ organization, event, mode = 'view'
         )}
       </div>
 
-      {/* Footer actions: Publish/Unpublish and Download CSV */}
+      {/* Footer actions: Status management and Download CSV */}
       <div className={styles.footerActions}>
-        <button
-          className={`btn ${event.status === 'published' ? 'btn-warning' : 'btn-success'}`}
-          onClick={handlePublishToggle}
-        >
-          <i className={`bi me-2 ${event.status === 'published' ? 'bi-cloud-slash' : 'bi-cloud-upload'}`} />
-          {event.status === 'published' ? 'Unpublish' : 'Publish'}
-        </button>
-        <button
-          className="btn btn-outline-secondary"
-          onClick={handleDownloadCsv}
-          title="Download CSV of registrations"
-          aria-label="Download registrations CSV"
-        >
-          <i className="bi bi-download me-2" />
-          Download CSV
-        </button>
+        {/* Status change dropdown based on current status */}
+        {event.status === 'draft' && (
+          <>
+            <button
+              className="btn btn-success"
+              onClick={handlePublishToggle}
+            >
+              <i className="bi bi-cloud-upload me-2" />
+              Publish Event
+            </button>
+            <button
+              className="btn btn-outline-danger"
+              onClick={handleDelete}
+            >
+              <i className="bi bi-trash me-2" />
+              Delete
+            </button>
+          </>
+        )}
+        
+        {event.status === 'published' && (
+          <div className="dropdown">
+            <button
+              className="btn btn-primary dropdown-toggle"
+              type="button"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              <i className="bi bi-gear me-2" />
+              Change Status
+            </button>
+            <ul className="dropdown-menu">
+              <li>
+                <button className="dropdown-item" onClick={handlePublishToggle}>
+                  <i className="bi bi-cloud-slash me-2" />
+                  Unpublish
+                </button>
+              </li>
+              <li><hr className="dropdown-divider" /></li>
+              <li>
+                <button className="dropdown-item" onClick={() => handleStatusChange('completed')}>
+                  <i className="bi bi-check-circle-fill me-2 text-primary" />
+                  Mark as Completed
+                </button>
+              </li>
+              <li>
+                <button className="dropdown-item text-danger" onClick={() => handleStatusChange('cancelled')}>
+                  <i className="bi bi-x-circle-fill me-2" />
+                  Cancel Event
+                </button>
+              </li>
+            </ul>
+          </div>
+        )}
+        
+        {event.status === 'cancelled' && (
+          <button
+            className="btn btn-success"
+            onClick={() => handleStatusChange('published')}
+          >
+            <i className="bi bi-arrow-clockwise me-2" />
+            Republish Event
+          </button>
+        )}
+        
+        {event.status === 'completed' && (
+          <div className="alert alert-info mb-0 py-2 px-3" role="status">
+            <i className="bi bi-check-circle-fill me-2" />
+            This event is completed and cannot be modified.
+          </div>
+        )}
+        
+        {/* Download CSV available for all statuses except draft */}
+        {event.status !== 'draft' && (
+          <button
+            className="btn btn-outline-secondary"
+            onClick={handleDownloadCsv}
+            title="Download CSV of registrations"
+            aria-label="Download registrations CSV"
+          >
+            <i className="bi bi-download me-2" />
+            Download CSV
+          </button>
+        )}
       </div>
 
       {showCheckIn && (
