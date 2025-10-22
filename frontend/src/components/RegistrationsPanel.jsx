@@ -144,14 +144,23 @@ export default function RegistrationsPanel({
     const handleUnregister = async (eventId) => {
         if (!user?.id) return;
         
+        if (!confirm('Are you sure you want to unregister from this event?')) {
+            return;
+        }
+        
         try {
-            await unregisterFromEvent(eventId, user.id);
-            await loadRegistrations();
-            if (selectedEvent?.id === eventId) {
-                setSelectedEvent(undefined);
+            const res = await unregisterFromEvent(eventId, user.id);
+            
+            if (res.success) {
+                await loadRegistrations();
+                if (selectedEvent?.id === eventId) {
+                    setSelectedEvent(undefined);
+                }
+                // Notify other components
+                window.dispatchEvent(new CustomEvent('registration:changed', { detail: { eventId, action: 'unregistered' } }));
+            } else {
+                alert(res.error || 'Failed to unregister from event');
             }
-            // Notify other components
-            window.dispatchEvent(new CustomEvent('registration:changed', { detail: { eventId, action: 'unregistered' } }));
         } catch (error) {
             console.error('Error unregistering:', error);
             alert('Failed to unregister from event');

@@ -37,12 +37,13 @@ export default function EventDetailPage({ user }) {
                 if (user) {
                     const { data: regData } = await supabase
                         .from('event_registrations')
-                        .select('id')
+                        .select('id, status')
                         .eq('event_id', eventId)
                         .eq('user_id', user.id)
                         .maybeSingle();
                     
-                    data.is_registered = !!regData;
+                    // Only consider registered if registration exists and is not cancelled
+                    data.is_registered = regData && regData.status !== 'cancelled';
                 }
 
                 setEvent(data);
