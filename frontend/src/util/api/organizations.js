@@ -160,12 +160,13 @@ export async function fetchOrganizationEvents(orgId) {
 }
 
 // fetch an organizations events by its unique slug
-export async function fetchOrganizationEventsBySlug(slug) {
+export async function fetchOrganizationEventsBySlug(slug, userId = null) {
     if (!slug) return APIError("Organization slug is undefined");
 
     try {
         const res = await supabase.rpc('list_org_events_all', {
             p_org_slug: slug,
+            p_user_id: userId,
         })
 
         if (res.error) return APIError(res.error.message);

@@ -97,23 +97,24 @@ export default function OrgPage() {
                 if(res.success) {
                     setOrg(res.data);
                 }
-            })
-        });
+            });
 
-        fetchOrganizationEventsBySlug(slug).then(res => {
-            if(res.success) {
-                // Filter out cancelled registrations when displaying events
-                const filteredEvents = (res.data || []).map(event => {
-                    // If registration is cancelled, treat as not registered
-                    if (event.registration_status === 'cancelled') {
-                        return { ...event, is_registered: false, registration_status: null };
-                    }
-                    return event;
-                });
-                setOrgEvents(filteredEvents);
-            }
-        })
-    }, []);
+            // Fetch events with user ID to check registration status
+            fetchOrganizationEventsBySlug(slug, userId).then(res => {
+                if(res.success) {
+                    // Filter out cancelled registrations when displaying events
+                    const filteredEvents = (res.data || []).map(event => {
+                        // If registration is cancelled, treat as not registered
+                        if (event.registration_status === 'cancelled') {
+                            return { ...event, is_registered: false, registration_status: null };
+                        }
+                        return event;
+                    });
+                    setOrgEvents(filteredEvents);
+                }
+            });
+        });
+    }, [slug]);
 
     // TABLE(id uuid, org_id uuid, title text, description text, start_at timestamp with time zone, end_at timestamp with time zone, status event_status, capacity integer, image_url text, created_at timestamp with time zone, updated_at timestamp with time zone, location jsonb, location_street text, location_city text, location_state text, location_zip text, location_address text, is_registered boolean, registration_id uuid, registered_at timestamp with time zone, registration_status text)
 
@@ -171,44 +172,69 @@ export default function OrgPage() {
                                     const isOpen = e.status === 'published' && (e.capacity ?? 0) > 0;
                                     return (
                                         <div className="col-md-6 col-lg-4" key={e.id}>
-                                            <div className="card h-100 bg-transparent border-light-subtle">
-                                                {e.image_url && (
-                                                    <img src={e.image_url} className="card-img-top" alt={e.title} style={{ height: 160, objectFit: 'cover' }} />
-                                                )}
-                                                <div className="card-body d-flex flex-column">
-                                                    <div className="d-flex align-items-start justify-content-between mb-2">
-                                                        <h5 className="card-title mb-0">{e.title}</h5>
-                                                        <span className={`badge text-bg-${e.status === 'published' ? 'success' : e.status === 'cancelled' ? 'danger' : 'secondary'}`}>{e.status}</span>
-                                                    </div>
-                                                    <p className="card-text text-muted" style={{ minHeight: '3rem' }}>{e.description?.slice(0, 100)}{e.description?.length > 100 ? '…' : ''}</p>
+                                            <div 
+                                                className={`${styles.eventCard} ${isRegistered ? styles.eventCardRegistered : ''}`}
+                                            >
+                                                {/* Image removed per request to simplify cards on org page */}
+                                                
+                                                <div className={styles.eventCardBody}>
+                                                    {/* Title */}
+                                                    <h5 className={styles.eventCardTitle}>{e.title}</h5>
+                                                    
+                                                    {/* Description */}
+                                                    <p className={styles.eventCardDescription}>
+                                                        {e.description?.substring(0, 100)}{e.description?.length > 100 ? '...' : ''}
+                                                    </p>
+                                                    
+                                                    {/* Date & Time */}
                                                     <div className="d-flex align-items-center gap-2 mb-2">
-                                                        <i className="bi bi-calendar-event" style={{ color: '#667eea' }}></i>
+                                                        <i className="bi bi-calendar-event" style={{ fontSize: '0.875rem', color: '#667eea' }}></i>
                                                         <small>{new Date(e.start_at).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</small>
                                                     </div>
+                                                    
+                                                    {/* Capacity */}
                                                     <div className="d-flex align-items-center gap-2 mb-3">
-                                                        <i className="bi bi-people" style={{ color: '#667eea' }}></i>
+                                                        <i className="bi bi-people" style={{ fontSize: '0.875rem', color: '#667eea' }}></i>
                                                         <small>{e.capacity} spots</small>
                                                     </div>
-                                                    <div className="mt-auto d-flex gap-2">
-                                                        <a href={`/event/${e.id}`} className="btn btn-outline-secondary btn-sm flex-fill">Details</a>
-                                                        {isRegistered ? (
-                                                            <button
-                                                                className="btn btn-outline-danger btn-sm flex-fill"
-                                                                disabled={registeringId === e.id}
-                                                                onClick={() => handleUnregisterEvent(e.id)}
-                                                            >
-                                                                {registeringId === e.id ? 'Unregistering…' : 'Unregister'}
-                                                            </button>
-                                                        ) : (
-                                                            <button
-                                                                className="btn btn-primary btn-sm flex-fill"
-                                                                disabled={!isOpen || registeringId === e.id}
-                                                                onClick={() => handleRegister(e.id)}
-                                                            >
-                                                                {registeringId === e.id ? 'Registering…' : isOpen ? 'Register' : 'Full'}
-                                                            </button>
-                                                        )}
-                                                    </div>
+                                                    
+                                                    {/* View Details Button */}
+                                                    <a href={`/event/${e.id}`} className={styles.viewDetailsButton}>
+                                                        <i className="bi bi-info-circle me-2"></i>
+                                                        View Details
+                                                    </a>
+                                                    
+                                                    {/* Register/Registered Button */}
+                                                    {isRegistered ? (
+                                                        <button
+                                                            className={`${styles.registerButton} ${styles.registered}`}
+                                                            disabled
+                                                        >
+                                                            <i className="bi bi-check-circle-fill me-2"></i>
+                                                            Registered
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            className={styles.registerButton}
+                                                            disabled={!isOpen || registeringId === e.id}
+                                                            onClick={(ev) => {
+                                                                ev.stopPropagation();
+                                                                handleRegister(e.id);
+                                                            }}
+                                                        >
+                                                            {registeringId === e.id ? (
+                                                                <>
+                                                                    <span className="spinner-border spinner-border-sm me-2"></span>
+                                                                    Registering...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <i className="bi bi-calendar-plus me-2"></i>
+                                                                    Register
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
