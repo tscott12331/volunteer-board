@@ -40,10 +40,21 @@ export default function CheckInModal({ event, onClose, onCheckInComplete }) {
             offset: page * limit
         };
         console.log('Calling fetchEventRegistrations with:', event.id, params);
+        console.log('Timestamp:', new Date().toISOString()); // Cache buster log
         const result = await fetchEventRegistrations(event.id, params);
         console.log('fetchEventRegistrations result:', result);
-        // Use result.data.rows for array of registrations
-        const rows = result.success && result.data && Array.isArray(result.data.rows) ? result.data.rows : [];
+        console.log('fetchEventRegistrations result.data:', result.data);
+        console.log('fetchEventRegistrations result.success:', result.success);
+        
+        // Accept both shapes: { rows: [...] } or [...]
+        let rows = (result?.success)
+            ? (Array.isArray(result.data?.rows) ? result.data.rows : (Array.isArray(result.data) ? result.data : []))
+            : [];
+        
+        console.log('Extracted rows:', rows);
+        console.log('Rows length:', rows.length);
+        console.log('First row if exists:', rows[0]); // Log the actual first row object
+
         setRegistrations(rows);
         setLoading(false);
     }
@@ -71,9 +82,29 @@ export default function CheckInModal({ event, onClose, onCheckInComplete }) {
     };
 
 
+    // Normalize name fields from various possible shapes returned by RPC
+    const getNameParts = (r) => {
+        const full = (
+            r.full_name ||
+            r.user_full_name ||
+            r.legal_name ||
+            [r.first_name, r.last_name].filter(Boolean).join(' ').trim() ||
+            r.profile_full_name ||
+            ''
+        ).trim();
+        const alias = (
+            r.display_name ||
+            r.user_display_name ||
+            r.profile_display_name ||
+            ''
+        ).trim();
+        return { full, alias };
+    };
+
     const filteredRegistrations = Array.isArray(registrations)
         ? registrations.filter(reg => {
-            const combined = `${reg.full_name || ''} ${reg.display_name || ''}`.trim();
+            const { full, alias } = getNameParts(reg);
+            const combined = `${full} ${alias}`.trim();
             return combined.toLowerCase().includes(searchQuery.toLowerCase());
         })
         : [];
@@ -131,30 +162,30 @@ export default function CheckInModal({ event, onClose, onCheckInComplete }) {
                         </div>
                     ) : (
                         filteredRegistrations.map((registration, idx) => {
-                            const full = (registration.full_name || '').trim();
-                            const alias = (registration.display_name || '').trim();
-                            const primary = full || alias || 'Unknown';
-                            const secondary = full && alias && alias !== full ? alias : null;
+                            const { full, alias } = getNameParts(registration);
+                            const email = (registration.user_email || registration.email || '').trim();
+                            const nameText = (full && alias && alias !== full)
+                                ? `${full} (${alias})`
+                                : (full || alias || email || 'Unknown');
                             const isCheckedIn = registration.status === 'checked_in';
-                            const regTime = registration.created_at ? new Date(registration.created_at).toLocaleString() : null;
+                            const regTime = registration.registered_at ? new Date(registration.registered_at).toLocaleString() : null;
                             return (
                                 <div key={registration.registration_id || registration.id || `reg-${idx}`} className={styles.registrationItem}>
                                     <div className={styles.volunteerInfo}>
                                         {(registration.logo_url || registration.avatar_url) ? (
                                             <img
                                                 src={registration.logo_url || registration.avatar_url}
-                                                alt={primary}
+                                                alt={nameText}
                                                 className={styles.avatar}
                                             />
                                         ) : (
                                             <div className={styles.avatarPlaceholder}>
-                                                {primary.charAt(0).toUpperCase()}
+                                                {nameText.charAt(0).toUpperCase()}
                                             </div>
                                         )}
 
                                         <div className={styles.volunteerDetails}>
-                                            <div className="fw-bold">{primary}</div>
-                                            {secondary && <div className="text-muted small">{secondary}</div>}
+                                            <div className="fw-bold">{nameText}</div>
                                             {regTime && <div className="text-muted small">{regTime}</div>}
                                         </div>
 
