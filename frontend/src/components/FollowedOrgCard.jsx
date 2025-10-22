@@ -1,19 +1,24 @@
 import { Link, useNavigate } from 'react-router-dom';
 import styles from './FollowedOrgCard.module.css';
+import { unfollowOrganization } from '../util/api/organizations';
 
 /*
     * Card displaying an organization a user follows
     * Users can navigate to the organization page or unfollow from this card
 */
 export default function FollowedOrgCard({
-    org
+    org,
+    onUnfollow
 }) {
     const navigate = useNavigate();
 
     // unfollows a user from an organization
-    const handleUnfollow = (e) => {
+    const handleUnfollow = async (e) => {
         e.stopPropagation();
-        // not implemented
+        const res = await unfollowOrganization(org.organization_id);
+        if(res.success) {
+            onUnfollow?.(org.organization_id);
+        }
     }
 
     return (
