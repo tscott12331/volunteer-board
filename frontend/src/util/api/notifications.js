@@ -71,6 +71,9 @@ export async function countUnreadNotifications(userId) {
 // Returns an unsubscribe function
 export function subscribeToNotifications(userId, { onInsert, onUpdate, onDelete } = {}) {
   if (!userId) return () => {};
+  
+  console.log('[Notifications] Setting up realtime subscription for user:', userId);
+  
   const channel = supabase.channel(`notif-user-${userId}`)
     .on('postgres_changes', {
       event: 'INSERT',
@@ -78,6 +81,7 @@ export function subscribeToNotifications(userId, { onInsert, onUpdate, onDelete 
       table: 'notifications',
       filter: `user_id=eq.${userId}`,
     }, (payload) => {
+      console.log('[Notifications] INSERT received:', payload.new);
       onInsert?.(payload.new);
     })
     .on('postgres_changes', {
@@ -86,6 +90,7 @@ export function subscribeToNotifications(userId, { onInsert, onUpdate, onDelete 
       table: 'notifications',
       filter: `user_id=eq.${userId}`,
     }, (payload) => {
+      console.log('[Notifications] UPDATE received:', payload.new);
       onUpdate?.(payload.new, payload.old);
     })
     .on('postgres_changes', {
@@ -94,11 +99,15 @@ export function subscribeToNotifications(userId, { onInsert, onUpdate, onDelete 
       table: 'notifications',
       filter: `user_id=eq.${userId}`,
     }, (payload) => {
+      console.log('[Notifications] DELETE received:', payload.old);
       onDelete?.(payload.old);
     })
-    .subscribe();
+    .subscribe((status) => {
+      console.log('[Notifications] Subscription status:', status);
+    });
 
   return () => {
+    console.log('[Notifications] Unsubscribing from realtime');
     try { supabase.removeChannel(channel); } catch {}
   };
 }
