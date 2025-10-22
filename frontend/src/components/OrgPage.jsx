@@ -77,7 +77,7 @@ export default function OrgPage() {
                     <div className={styles.header}>
                         <div className="d-flex flex-column align-items-center">
                             <div className={styles.logoWrapper}>
-                                <img src={org.logo_url || '/placeholder.svg'} alt="Avatar" className={styles.pfp} />
+                                <img src={org.logo_url || org.logoUrl || org.image_url || org.imageUrl || org.image || org.logo || '/placeholder.svg'} alt="Avatar" className={styles.pfp} />
                             </div>
                             <h2 className={styles.orgName}>{org.name}</h2>
                             {sessionUserId &&

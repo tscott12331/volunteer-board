@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from 'react-router-dom';
 import { fetchRegisteredEvents, fetchOrganization, unregisterFromEvent, fetchEventById } from "../util/api/events";
 import { formatDateAtTime } from '../util/date';
 import styles from './RegistrationsPanel.module.css';
@@ -329,8 +330,8 @@ export default function RegistrationsPanel({
                                             <div style={{ width: 72, height: 72, flex: '0 0 72px', borderRadius: 8, overflow: 'hidden', background: 'rgba(255,255,255,0.02)' }}>
                                                 {e.image_url ? (
                                                     <img src={e.image_url} alt={e.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                ) : org?.logo_url || org?.image_url ? (
-                                                    <img src={org.logo_url || org.image_url} alt={org?.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                ) : (org?.logo_url || org?.image_url || org?.logoUrl || org?.imageUrl || org?.image || org?.logo) ? (
+                                                    <img src={org.logo_url || org.image_url || org.logoUrl || org.imageUrl || org.image || org.logo} alt={org?.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                 ) : (
                                                     <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(102,126,234,0.08)', color: '#667eea', fontWeight: 700 }}>
                                                         {org?.name?.[0] || e.title?.[0] || '?'}
@@ -392,14 +393,19 @@ export default function RegistrationsPanel({
                                             return (
                                                 <div className="d-flex align-items-center gap-2 mb-2">
                                                     {orgImage ? (
-                                                        <img src={orgImage} alt={orgName} style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 8 }} />
+                                                        <img src={orgImage || selectedOrg?.logoUrl || selectedOrg?.imageUrl || selectedOrg?.image || selectedOrg?.logo} alt={orgName} style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 8 }} />
                                                     ) : (
                                                         <div style={{ width: 48, height: 48, borderRadius: 8, background: 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontWeight: 700 }}>
                                                             {orgName?.[0] || '?'}
                                                         </div>
                                                     )}
                                                     <div>
-                                                        <div className="text-body-emphasis">{orgName}</div>
+                                                        <div className="text-body-emphasis">
+                                                            {(() => {
+                                                                const orgSlug = selectedOrg?.slug || selectedEvent.organization_slug || selectedEvent.org_slug || selectedEvent.slug || null;
+                                                                return orgSlug ? <Link to={`/org/${orgSlug}`}>{orgName}</Link> : orgName;
+                                                            })()}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             );
@@ -488,7 +494,13 @@ export default function RegistrationsPanel({
                                                         {orgData?.name?.[0] || '?'}
                                                     </div>
                                                 )}
-                                                <small className="text-muted">{orgData?.name || 'Loading...'}</small>
+                                                        <small className="text-muted">
+                                                            {(() => {
+                                                                const orgSlug = orgData?.slug || e.organization_slug || e.org_slug || e.slug || null;
+                                                                const name = orgData?.name || 'Loading...';
+                                                                return orgSlug ? <Link to={`/org/${orgSlug}`}>{name}</Link> : name;
+                                                            })()}
+                                                        </small>
                                             </div>
                                             
                                             <h5 className={styles.eventCardTitle}>{e.title}</h5>

@@ -24,7 +24,7 @@ export default function VolunteerSetup() {
   const [form, setForm] = useState({
     full_name: '',
     display_name: '',
-    avatar_url: '',
+  logo_url: '',
     phone: '',
     bio: '',
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Los_Angeles',
@@ -235,8 +235,8 @@ export default function VolunteerSetup() {
                   <input id="phone" name="phone" type="tel" className="form-control" placeholder="(555) 555-5555" value={form.phone} onChange={onChange} />
                 </div>
                 <div className="col-md-6">
-                  <label htmlFor="avatar_url">Avatar URL</label>
-                  <input id="avatar_url" name="avatar_url" type="url" className="form-control" placeholder="https://..." value={form.avatar_url} onChange={onChange} />
+                  <label htmlFor="logo_url">Logo URL</label>
+                  <input id="logo_url" name="logo_url" type="url" className="form-control" placeholder="https://..." value={form.logo_url} onChange={onChange} />
                 </div>
                 <div className="col-12">
                   <label htmlFor="bio">Bio</label>

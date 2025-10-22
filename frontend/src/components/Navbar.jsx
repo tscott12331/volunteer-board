@@ -109,7 +109,7 @@ export default function Navbar({
     
     // Avatar/initials helper
     const getAvatar = () => {
-        if (userProfile?.avatar_url) return <img src={userProfile.avatar_url} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%' }} />;
+        if (userProfile?.logo_url || userProfile?.avatar_url) return <img src={userProfile.logo_url || userProfile.avatar_url} alt="logo" style={{ width: 32, height: 32, borderRadius: '50%' }} />;
         if (user?.email) return <span className="avatar-circle">{user.email[0].toUpperCase()}</span>;
         return <span className="avatar-circle">U</span>;
     };

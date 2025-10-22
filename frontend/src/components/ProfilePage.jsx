@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom';
 import styles from './ProfilePage.module.css';
 import { useEffect, useState } from "react";
 import { fetchProfile, upsertProfile } from '../util/api/profile';
+import { fetchOrganizationByOwner, updateOrganization } from '../util/api/organizations';
 import { supabase } from '../util/api/supabaseClient';
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -112,7 +113,7 @@ export default function ProfilePage() {
         setForm({
             full_name: profile.full_name ?? '',
             display_name: profile.display_name ?? '',
-            avatar_url: profile.avatar_url ?? '',
+            logo_url: profile.logo_url ?? '',
             phone: profile.phone ?? '',
             bio: profile.bio ?? '',
             timezone: profile.timezone ?? timezones[0],
@@ -161,7 +162,31 @@ export default function ProfilePage() {
         const result = await upsertProfile(userId, toSave);
         setSaving(false);
         if (result.success) {
-            setProfile({ ...profile, ...toSave });
+                setProfile({ ...profile, ...toSave });
+                // If this user represents an organization, also save the logo_url into
+                // the organizations table so org pages show the updated logo.
+                if (profile?.account === 'organization') {
+                    try {
+                        const orgRes = await fetchOrganizationByOwner(userId);
+                        if (orgRes.success && orgRes.data) {
+                            const org = orgRes.data;
+                            const orgUpdate = {
+                                logo_url: form.logo_url ?? form.avatar_url ?? null,
+                                // keep name/description unchanged if not editing them here
+                                name: org.name,
+                                description: org.description,
+                            };
+                            const upd = await updateOrganization(org.id, orgUpdate);
+                            if (!upd.success) {
+                                console.warn('Failed to update organization logo:', upd.message || upd);
+                            }
+                        } else {
+                            console.warn('Could not find organization for owner when saving logo:', orgRes.message || orgRes);
+                        }
+                    } catch (e) {
+                        console.error('Error saving organization logo:', e);
+                    }
+                }
             setEditing(false);
             setShowToast(true);
             setTimeout(() => setShowToast(false), 2500);
@@ -170,8 +195,8 @@ export default function ProfilePage() {
         }
     };
 
-    // Avatar preview
-    const avatarPreview = form?.avatar_url || profile?.avatar_url;
+    // Logo preview (accept both logo_url and avatar_url during transition)
+    const logoPreview = form?.logo_url || form?.avatar_url || profile?.logo_url || profile?.avatar_url;
 
     return (
         <div className={styles.pageWrapper}>
@@ -186,7 +211,7 @@ export default function ProfilePage() {
                     <div className={styles.header}>
                         <div className="d-flex flex-column align-items-center">
                             <div className={styles.avatarWrapper}>
-                                <img src={profile.avatar_url || '/placeholder.svg'} alt="Avatar" className={styles.pfp} />
+                                <img src={profile.logo_url || profile.avatar_url || '/placeholder.svg'} alt="Avatar" className={styles.pfp} />
                             </div>
                             <h2 className={styles.profileName}>{profile.display_name || profile.full_name || 'Unnamed User'}</h2>
                             <span className="badge bg-primary" style={{ fontSize: '1rem', fontWeight: 500 }}>
@@ -216,8 +241,8 @@ export default function ProfilePage() {
                                             <input id="display_name" name="display_name" className="form-control" value={form.display_name} onChange={onChange} />
                                         </div>
                                         <div className="col-md-6">
-                                            <label htmlFor="avatar_url" className="form-label">Avatar URL</label>
-                                            <input id="avatar_url" name="avatar_url" className="form-control" value={form.avatar_url} onChange={onChange} placeholder="https://..." />
+                                            <label htmlFor="logo_url" className="form-label">Logo URL</label>
+                                            <input id="logo_url" name="logo_url" className="form-control" value={form.logo_url ?? form.avatar_url} onChange={onChange} placeholder="https://..." />
                                         </div>
                                         <div className="col-md-6">
                                             <label htmlFor="phone" className="form-label">Phone</label>

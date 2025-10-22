@@ -130,7 +130,7 @@ export default function CheckInModal({ event, onClose, onCheckInComplete }) {
                             {searchQuery ? 'No volunteers found' : 'No registrations yet'}
                         </div>
                     ) : (
-                        filteredRegistrations.map(registration => {
+                        filteredRegistrations.map((registration, idx) => {
                             const full = (registration.full_name || '').trim();
                             const alias = (registration.display_name || '').trim();
                             const primary = full || alias || 'Unknown';
@@ -138,11 +138,11 @@ export default function CheckInModal({ event, onClose, onCheckInComplete }) {
                             const isCheckedIn = registration.status === 'checked_in';
                             const regTime = registration.created_at ? new Date(registration.created_at).toLocaleString() : null;
                             return (
-                                <div key={registration.registration_id || registration.id} className={styles.registrationItem}>
+                                <div key={registration.registration_id || registration.id || `reg-${idx}`} className={styles.registrationItem}>
                                     <div className={styles.volunteerInfo}>
-                                        {registration.avatar_url ? (
-                                            <img 
-                                                src={registration.avatar_url} 
+                                        {(registration.logo_url || registration.avatar_url) ? (
+                                            <img
+                                                src={registration.logo_url || registration.avatar_url}
                                                 alt={primary}
                                                 className={styles.avatar}
                                             />
@@ -151,39 +151,39 @@ export default function CheckInModal({ event, onClose, onCheckInComplete }) {
                                                 {primary.charAt(0).toUpperCase()}
                                             </div>
                                         )}
-                                        <span className={styles.volunteerName}>
-                                            {primary}
-                                            {secondary && <span className="text-muted ms-1">({secondary})</span>}
-                                        </span>
-                                        {regTime && (
-                                            <span className={styles.regTime}>Registered: {regTime}</span>
-                                        )}
-                                    </div>
-                                    <div className={styles.statusArea}>
-                                        {isCheckedIn ? (
-                                            <>
-                                                <span className="text-success fw-bold me-2">
-                                                    <i className="bi bi-check-circle-fill me-1"></i>Checked In
-                                                </span>
+
+                                        <div className={styles.volunteerDetails}>
+                                            <div className="fw-bold">{primary}</div>
+                                            {secondary && <div className="text-muted small">{secondary}</div>}
+                                            {regTime && <div className="text-muted small">{regTime}</div>}
+                                        </div>
+
+                                        <div className={styles.actionArea}>
+                                            {isCheckedIn ? (
+                                                <>
+                                                    <span className="text-success fw-bold me-2">
+                                                        <i className="bi bi-check-circle-fill me-1"></i>Checked In
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        className={`btn btn-outline-secondary btn-sm`}
+                                                        onClick={() => handleCheckIn(registration.registration_id || registration.id, registration.status)}
+                                                        disabled={updating}
+                                                    >
+                                                        Uncheck
+                                                    </button>
+                                                </>
+                                            ) : (
                                                 <button
                                                     type="button"
-                                                    className={`btn btn-outline-secondary btn-sm`}
+                                                    className={`btn btn-outline-primary btn-sm`}
                                                     onClick={() => handleCheckIn(registration.registration_id || registration.id, registration.status)}
                                                     disabled={updating}
                                                 >
-                                                    Uncheck
+                                                    Check In
                                                 </button>
-                                            </>
-                                        ) : (
-                                            <button
-                                                type="button"
-                                                className={`btn btn-outline-primary btn-sm`}
-                                                onClick={() => handleCheckIn(registration.registration_id || registration.id, registration.status)}
-                                                disabled={updating}
-                                            >
-                                                Check In
-                                            </button>
-                                        )}
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             );

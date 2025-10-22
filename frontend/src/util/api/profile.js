@@ -61,6 +61,8 @@ export async function fetchProfile(userId) {
         // Fallback: direct query from profiles (minimal fields used by UI/Guard)
         const { data, error } = await supabase
             .from('profiles')
+            // profiles table may still use `avatar_url` (migration to logo_url may not be applied),
+            // request avatar_url for compatibility.
             .select('id, full_name, display_name, avatar_url, phone, bio, timezone, onboarding_complete')
             .eq('id', userId)
             .maybeSingle();
@@ -98,12 +100,29 @@ export async function upsertProfile(userId, data) {
             id: userId,
             full_name: data.full_name ?? null,
             display_name: data.display_name ?? null,
-            avatar_url: data.avatar_url ?? null,
+            // Write to `avatar_url` on profiles table for compatibility. The UI will
+            // continue to read logo_url or avatar_url as available.
+            avatar_url: data.logo_url ?? data.avatar_url ?? null,
             phone: data.phone ?? null,
             bio: data.bio ?? null,
             timezone: normalizeTimezone(data.timezone) ?? 'America/Los_Angeles',
             updated_at: new Date().toISOString(),
         };
+
+        // Profiles table may not accept nested objects directly. If default_location
+        // was provided as an object (city/state), stringify it so it can be stored
+        // in a JSON column, otherwise omit to avoid 400 errors.
+        if (data.default_location && typeof data.default_location === 'object') {
+            try {
+                payload.default_location = JSON.stringify(data.default_location);
+            } catch (e) {
+                // fallback: don't include the field
+                console.warn('Failed to stringify default_location, omitting:', e);
+            }
+        }
+
+        // Debug: log payload being sent to Supabase for troubleshooting 400 errors
+        console.log('upsertProfile payload:', payload);
 
         const { data: upserted, error } = await supabase
             .from('profiles')
@@ -111,7 +130,17 @@ export async function upsertProfile(userId, data) {
             .select()
             .single();
 
-        if (error) return APIError(error.message);
+        if (error) {
+            console.error('Supabase upsert error:', {
+                message: error.message,
+                details: error.details,
+                hint: error.hint,
+                code: error.code,
+                context: error, // full error object
+            });
+            const detailed = `${error.message || 'Upsert failed'}${error.details ? ' | details: ' + error.details : ''}${error.hint ? ' | hint: ' + error.hint : ''}${error.code ? ' | code: ' + error.code : ''}`;
+            return APIError(detailed);
+        }
 
         // Save availability directly to the table (no RPC issues)
         if (data.availability && typeof data.availability === 'object') {
