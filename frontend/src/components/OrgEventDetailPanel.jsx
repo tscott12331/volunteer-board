@@ -49,6 +49,7 @@ export default function OrgEventDetailPanel({ organization, event, mode = 'view'
       return {
         title: '',
         summary: '',
+        image_url: '',
         description: '',
         street: '',
         city: '',
@@ -68,6 +69,7 @@ export default function OrgEventDetailPanel({ organization, event, mode = 'view'
     return {
       title: event.title || '',
       summary: event.summary || '',
+      image_url: event.image_url || '',
       description: event.description || '',
       street: event.location?.street || '',
       city: event.location?.city || '',
@@ -243,6 +245,7 @@ export default function OrgEventDetailPanel({ organization, event, mode = 'view'
       title: formData.title,
       summary: formData.summary,
       description: formData.description,
+      image_url: formData.image_url || null,
       location,
       start_at: startDate.toISOString(),
       end_at: endDate.toISOString(),
@@ -311,6 +314,10 @@ export default function OrgEventDetailPanel({ organization, event, mode = 'view'
           <div>
             <label htmlFor="summary" className="form-label">Summary</label>
             <input id="summary" name="summary" className="form-control" value={formData.summary} onChange={handleChange} />
+          </div>
+          <div>
+            <label htmlFor="image_url" className="form-label">Event Image URL</label>
+            <input id="image_url" name="image_url" type="text" className="form-control" value={formData.image_url} onChange={handleChange} placeholder="https://example.com/image.jpg" />
           </div>
           <div>
             <label htmlFor="description" className="form-label">Description</label>

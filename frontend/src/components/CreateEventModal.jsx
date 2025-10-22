@@ -21,6 +21,7 @@ export default function CreateEventModal({ organization, event, onClose, onSave 
         start_at: '',
         end_at: '',
         capacity: 10,
+        image_url: '',
     });
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState(null);
@@ -39,6 +40,7 @@ export default function CreateEventModal({ organization, event, onClose, onSave 
                 start_at: formatDateTimeLocal(startDate),
                 end_at: formatDateTimeLocal(endDate),
                 capacity: event.capacity || 10,
+                image_url: event.image_url || '',
             });
         }
     }, [event]);
@@ -85,6 +87,7 @@ export default function CreateEventModal({ organization, event, onClose, onSave 
             end_at: endDate.toISOString(),
             capacity: parseInt(formData.capacity),
             status: event?.status || 'draft',
+            image_url: formData.image_url || null,
         };
 
         const result = isEditing 
@@ -145,6 +148,19 @@ export default function CreateEventModal({ organization, event, onClose, onSave 
                             className="form-control"
                             value={formData.summary}
                             onChange={handleChange}
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label htmlFor="image_url">Event Image URL</label>
+                        <input
+                            type="text"
+                            id="image_url"
+                            name="image_url"
+                            className="form-control"
+                            value={formData.image_url}
+                            onChange={handleChange}
+                            placeholder="https://example.com/image.jpg"
                         />
                     </div>
 
