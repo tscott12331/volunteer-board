@@ -308,11 +308,48 @@ export async function fetchEventRegistrations(eventId, options = {}) {
         }, {
             ...(accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : {})
         });
+        
+        console.log('=== RPC DEBUG START ===');
+        console.log('Status Filter:', status)
+        console.log('RPC get_event_registrants raw data:', data);
+        console.log('RPC typeof data:', typeof data);
+        console.log('RPC data keys:', data ? Object.keys(data) : 'null');
+        console.log('RPC get_event_registrants error:', error);
+        console.log('=== RPC DEBUG END ===');
+        
         if (error) {
             console.error('Supabase RPC error:', error);
             return APIError(error.message || 'Failed to fetch registrants');
         }
-        return APISuccess(data || []);
+        
+        // RPC returns jsonb - Supabase may wrap it or return it directly
+        // Handle both: data itself is the object, OR data is wrapped
+        let responseData = data;
+        
+        // If data is a string, parse it
+        if (typeof data === 'string') {
+            console.log('Data is string, parsing...');
+            responseData = JSON.parse(data);
+        }
+        
+        console.log('=== EXTRACTION DEBUG START ===');
+        console.log('responseData:', responseData);
+        console.log('responseData typeof:', typeof responseData);
+        console.log('responseData.rows:', responseData?.rows);
+        console.log('responseData.rows type:', Array.isArray(responseData?.rows) ? 'array' : typeof responseData?.rows);
+        if (responseData?.rows?.[0]) {
+            console.log('First row:', responseData.rows[0]);
+            console.log('First row keys:', Object.keys(responseData.rows[0]));
+        }
+        console.log('=== EXTRACTION DEBUG END ===');
+        
+        const rows = Array.isArray(responseData?.rows) ? responseData.rows : [];
+        const totalCount = responseData?.total_count ?? rows.length;
+        
+        console.log('Final extracted rows array:', rows);
+        console.log('Final total count:', totalCount);
+        
+        return APISuccess({ rows, total_count: totalCount });
     } catch (error) {
         console.error('fetchEventRegistrations exception:', error);
         return APIError("Server error");
