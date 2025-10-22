@@ -2,8 +2,13 @@ import { APIError, APISuccess } from './api-response';
 import { supabase } from './supabaseClient';
 
 const formatTimezone = (timezone) => {
-    // replace underscores with space
+    // replace underscores with space for display
     return timezone ? timezone.replace(/_/g, ' ') : null;
+}
+
+const normalizeTimezone = (timezone) => {
+    // replace spaces with underscores for database storage
+    return timezone ? timezone.replace(/ /g, '_') : null;
 }
 
 export async function fetchProfile(userId) {
@@ -96,7 +101,7 @@ export async function upsertProfile(userId, data) {
             avatar_url: data.avatar_url ?? null,
             phone: data.phone ?? null,
             bio: data.bio ?? null,
-            timezone: data.timezone ?? 'America/Los_Angeles',
+            timezone: normalizeTimezone(data.timezone) ?? 'America/Los_Angeles',
             updated_at: new Date().toISOString(),
         };
 
@@ -147,7 +152,7 @@ export async function upsertProfile(userId, data) {
                             day: dayMap[day],
                             start_time: config.start,
                             end_time: config.end,
-                            timezone: data.timezone ?? 'UTC'
+                            timezone: normalizeTimezone(data.timezone) ?? 'UTC'
                         });
                     }
                 }
