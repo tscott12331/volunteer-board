@@ -14,6 +14,7 @@ export default function EventDetailPage({ user }) {
     const [registering, setRegistering] = useState(false);
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [error, setError] = useState(null);
+    const [copied, setCopied] = useState(false);
 
     useEffect(() => {
         if (!eventId) return;
@@ -157,10 +158,25 @@ export default function EventDetailPage({ user }) {
         );
     }
 
-    const startDate = new Date(event.start_at);
-    const endDate = new Date(event.end_at);
-    const isRegistered = event.is_registered;
-    const hasCapacity = event.capacity > 0;
+    const safeFormatDate = (value) => {
+        if (!value) return 'TBD';
+        const d = new Date(value);
+        if (isNaN(d.getTime())) return 'TBD';
+        try {
+            return formatDateAtTime(d);
+        } catch {
+            // Fallback formatting if locale API throws
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            const yy = String(d.getFullYear()).slice(-2);
+            const h = d.getHours();
+            const m = String(d.getMinutes()).padStart(2, '0');
+            return `${mm}/${dd}/${yy} at ${((h % 12) || 12)}:${m} ${h >= 12 ? 'PM' : 'AM'}`;
+        }
+    };
+
+    const isRegistered = !!event.is_registered;
+    const hasCapacity = Number(event.capacity ?? 0) > 0;
 
     return (
         <div className={styles.pageWrapper}>
@@ -171,26 +187,104 @@ export default function EventDetailPage({ user }) {
                     Back
                 </button>
 
+                {/* Hero banner */}
+                {event && (
+                    <div 
+                        className={styles.hero}
+                        style={{ backgroundImage: event.image_url ? `url(${event.image_url})` : 'none' }}
+                        aria-label="Event banner"
+                    >
+                        <div className={styles.heroOverlay} />
+                        <div className={styles.heroContent}>
+                            <h1 className={styles.heroTitle}>{event.title}</h1>
+                            <div className={styles.heroFooter}>
+                                <div className={styles.chips}>
+                                    <span className={styles.chip}>
+                                        <i className="bi bi-calendar-event me-1" />
+                                        {safeFormatDate(event.start_at)}
+                                    </span>
+                                    {event.location && (
+                                        <span className={styles.chip}>
+                                            <i className="bi bi-geo-alt me-1" />
+                                            {typeof event.location === 'string' ? event.location : (event.location?.city || event.location?.name || `${event.location?.lat ?? ''}${event.location?.lon ? ", " + event.location.lon : ''}`)}
+                                        </span>
+                                    )}
+                                    {org && (
+                                        <span className={`${styles.chip} ${styles.hostChip}`}>
+                                            {org.logo_url ? (
+                                                <img src={org.logo_url} alt={`${org.name} logo`} className={styles.hostAvatar} />
+                                            ) : (
+                                                <i className="bi bi-building me-1" />
+                                            )}
+                                            <span className={styles.hostLabel}>{org.name}</span>
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Hero CTA */}
+                                {user && (
+                                    <div className={styles.heroButtons}>
+                                        {isRegistered ? (
+                                            <button 
+                                                className="btn btn-outline-danger btn-sm"
+                                                onClick={handleUnregister}
+                                                disabled={registering}
+                                            >
+                                                {registering ? (
+                                                    <>
+                                                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                                        Canceling...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <i className="bi bi-x-circle me-2"></i>
+                                                        Cancel Registration
+                                                    </>
+                                                )}
+                                            </button>
+                                        ) : (
+                                            <button 
+                                                className="btn btn-primary btn-sm"
+                                                onClick={handleRegister}
+                                                disabled={registering || !hasCapacity}
+                                            >
+                                                {registering ? (
+                                                    <>
+                                                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                                        Registering...
+                                                    </>
+                                                ) : !hasCapacity ? (
+                                                    <>
+                                                        <i className="bi bi-x-circle me-2"></i>
+                                                        Event Full
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <i className="bi bi-calendar-plus me-2"></i>
+                                                        Register for Event
+                                                    </>
+                                                )}
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <div className="row">
                     {/* Main Content */}
                     <div className="col-lg-8">
                         <div className="card shadow-sm">
-                            {event.image_url && (
-                                <img 
-                                    src={event.image_url} 
-                                    className="card-img-top" 
-                                    alt={event.title}
-                                    style={{ maxHeight: '400px', objectFit: 'cover' }}
-                                />
-                            )}
                             <div className="card-body">
-                                <h1 className="card-title mb-3">{event.title}</h1>
+                                {/* Title moved to hero */}
                                 
                                 {/* Registration confirmation */}
                                 {showConfirmation && (
                                     <div className="alert alert-success alert-dismissible fade show" role="alert">
                                         <i className="bi bi-check-circle me-2"></i>
-                                        You're registered! Check your email for confirmation.
+                                        You're registered for this event!
                                         <button 
                                             type="button" 
                                             className="btn-close" 
@@ -227,14 +321,14 @@ export default function EventDetailPage({ user }) {
                                 {/* Event Info */}
                                 <div className="mb-4">
                                     <h5 className="mb-3">Event Details</h5>
-                                    <ul className="list-unstyled">
+                                    <ul className={`list-unstyled ${styles.detailsList}`}>
                                         <li className="mb-2">
                                             <i className="bi bi-calendar-event text-primary me-2"></i>
-                                            <strong>Starts:</strong> {formatDateAtTime(startDate)}
+                                            <strong>Starts:</strong> {safeFormatDate(event.start_at)}
                                         </li>
                                         <li className="mb-2">
                                             <i className="bi bi-calendar-check text-primary me-2"></i>
-                                            <strong>Ends:</strong> {formatDateAtTime(endDate)}
+                                            <strong>Ends:</strong> {safeFormatDate(event.end_at)}
                                         </li>
                                         <li className="mb-2">
                                             <i className="bi bi-people text-primary me-2"></i>
@@ -243,7 +337,7 @@ export default function EventDetailPage({ user }) {
                                         {event.location && (
                                             <li className="mb-2">
                                                 <i className="bi bi-geo-alt text-primary me-2"></i>
-                                                <strong>Location:</strong> {event.location}
+                                                <strong>Location:</strong> {typeof event.location === 'string' ? event.location : (event.location?.city || event.location?.name || `${event.location?.lat ?? ''}${event.location?.lon ? ", " + event.location.lon : ''}`)}
                                             </li>
                                         )}
                                     </ul>
@@ -254,7 +348,7 @@ export default function EventDetailPage({ user }) {
                                     <div className="d-grid gap-2">
                                         {isRegistered ? (
                                             <>
-                                                <div className="alert alert-info mb-2">
+                                                <div className="alert alert-info mb-3">
                                                     <i className="bi bi-check-circle me-2"></i>
                                                     You are registered for this event
                                                 </div>
@@ -316,7 +410,7 @@ export default function EventDetailPage({ user }) {
                     {/* Sidebar - Organization Info */}
                     <div className="col-lg-4">
                         {org && (
-                            <div className="card shadow-sm mb-3">
+                            <div className={`card shadow-sm mb-3 ${styles.sidebarSticky}`}>
                                 <div className="card-body">
                                     <h5 className="card-title mb-3">
                                         <i className="bi bi-building me-2"></i>
@@ -337,7 +431,7 @@ export default function EventDetailPage({ user }) {
                                     {org.slug && (
                                         <a 
                                             href={`/org/${org.slug}`} 
-                                            className="btn btn-outline-primary btn-sm w-100"
+                                            className="btn btn-primary btn-sm w-100"
                                         >
                                             <i className="bi bi-arrow-right-circle me-2"></i>
                                             View Organization
@@ -358,8 +452,10 @@ export default function EventDetailPage({ user }) {
                                     <button 
                                         className="btn btn-outline-secondary btn-sm"
                                         onClick={() => {
-                                            navigator.clipboard.writeText(window.location.href);
-                                            alert('Link copied to clipboard!');
+                                            navigator.clipboard.writeText(window.location.href)
+                                                .then(() => setCopied(true))
+                                                .catch(() => setCopied(true));
+                                            setTimeout(() => setCopied(false), 2000);
                                         }}
                                     >
                                         <i className="bi bi-link-45deg me-2"></i>
@@ -370,6 +466,12 @@ export default function EventDetailPage({ user }) {
                         </div>
                     </div>
                 </div>
+                {copied && (
+                    <div className={styles.toast} role="status" aria-live="polite">
+                        <i className="bi bi-check2-circle me-2"></i>
+                        Link copied to clipboard
+                    </div>
+                )}
             </div>
         </div>
     );

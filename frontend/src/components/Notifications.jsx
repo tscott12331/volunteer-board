@@ -98,13 +98,14 @@ export default function Notifications({ user, onClose }) {
   };
 
   // Navigate to event
-  const handleNavigate = async (n) => {
-    onClose(); // Close overlay immediately for smooth transition
-    if (!n.is_read) {
-      await markNotificationRead(n.id);
-      // Do not update local state; overlay is closing and item is removed by realtime/badge
-    }
+  const handleNavigate = (n) => {
+    // Close overlay first, then navigate immediately to avoid any visual blocking
+    onClose();
     navigate(`/event/${n.event_id}`);
+    // Fire-and-forget mark as read so navigation isn't blocked
+    if (!n.is_read) {
+      markNotificationRead(n.id).catch(() => {});
+    }
   };
 
   // Keyboard: ESC to close
@@ -203,7 +204,6 @@ export default function Notifications({ user, onClose }) {
                 className={`${styles.item} ${!n.is_read ? styles.unread : ''}`} 
                 key={n.id}
                 onClick={() => handleNavigate(n)}
-                onMouseEnter={() => !n.is_read && handleMarkRead(n)}
               >
                 <div className={styles.iconWrapper} style={{ backgroundColor: iconData.bg }}>
                   <i className={`bi ${iconData.icon}`} style={{ color: iconData.color }}></i>
