@@ -256,13 +256,13 @@ export default function RegistrationsPanel({
                     <div className={"row mt-4 " + styles.eventsWrappers}>
                         <div className="col-md-4">
                             <div className={styles.eventList}>
-                                {events.filter(e => filterEventBySearch(e, searchQuery)).map(e => {
+                                {displayedEvents.map(e => {
                                     const org = orgDataMap[e.organization_id];
-                                    return (
+                                    return (    
                                     <button
                                         key={e.id}
                                         type="button"
-                                        className={`${styles.eventListItem} ${selectedEvent?.id === e.id ? styles.active : ''}`}
+                                        className={`${styles.eventListItem} ${selectedEvent === e ? styles.active : ''}`}
                                         onClick={() => setSelectedEvent(e)}
                                     >
                                         <div className="d-flex w-100 gap-3 align-items-start">
@@ -338,7 +338,7 @@ export default function RegistrationsPanel({
                 ) : (
                     // Grid View
                     <div className="row g-3">
-                        {events.filter(e => filterEventBySearch(e, searchQuery)).map(e => {
+                        {displayedEvents.map(e => {
                             const orgData = orgDataMap[e.organization_id];
                             return (
                                 <div key={e.id} className="col-md-6 col-lg-4">
