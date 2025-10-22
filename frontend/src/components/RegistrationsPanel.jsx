@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { fetchRegisteredEvents, fetchOrganization, unregisterFromEvent } from "../util/api/events";
+import { fetchRegisteredEvents, fetchOrganization, unregisterFromEvent, fetchEventById } from "../util/api/events";
 import { formatDateAtTime } from '../util/date';
 import styles from './RegistrationsPanel.module.css';
 
@@ -37,13 +37,62 @@ export default function RegistrationsPanel({
         setLoading(true);
         fetchRegisteredEvents(user.id).then(async (res) => {
             if(res.success) {
-                // set events on fetch success
-                setEvents(res.data);
-                
-                // Fetch organization data for all events
-                const orgIds = [...new Set(res.data.map(event => event.organization_id).filter(Boolean))];
+                // Normalize events: ensure each event has an `id` property (fallbacks: event_id, eventId)
+                const normalizedEvents = (res.data || []).map((ev) => ({
+                    ...ev,
+                    id: ev.id || ev.event_id || ev.eventId || null,
+                }));
+
+                // set events on fetch success (use normalized)
+                setEvents(normalizedEvents);
+
+                // Debug: log fetched registrations (normalized + per-event)
+                console.log('[RegistrationsPanel] fetched registrations (normalized):', normalizedEvents);
+                console.log('[RegistrationsPanel] registrations count:', normalizedEvents.length);
+                normalizedEvents.forEach((ev, i) => {
+                    console.log(`[RegistrationsPanel] normalized event[${i}] id=${ev.id}`, ev);
+                    if (!ev?.id) {
+                        console.warn(`[RegistrationsPanel] normalized event[${i}] is still missing id field`, ev);
+                    }
+                });
+
+                // For registrations that don't contain organization/location info, fetch the full event record
+                const mergedEvents = await Promise.all(normalizedEvents.map(async (reg) => {
+                    // If registration already includes useful event info like location or organization, keep it
+                    const hasLocation = !!(reg.location || reg.location_address || reg.venue || reg.address);
+                    const hasOrg = !!(reg.organization || reg.organization_id || reg.org_id || reg.organization_name || reg.organization_logo);
+                    if (hasLocation && hasOrg) return reg;
+
+                    // otherwise try to fetch the event by id (use event_id or id)
+                    const eventId = reg.id || reg.event_id || reg.eventId;
+                    if (!eventId) return reg;
+
+                    try {
+                        const evRes = await fetchEventById(eventId);
+                        if (evRes.success && evRes.data) {
+                            // merge event record into registration object (prefer registration fields when present)
+                            return { ...evRes.data, ...reg, id: evRes.data.id || reg.id };
+                        }
+                    } catch (err) {
+                        console.error('Error fetching event details for', eventId, err);
+                    }
+                    return reg;
+                }));
+
+                // Use merged events going forward
+                setEvents(mergedEvents);
+
+                console.log('[RegistrationsPanel] mergedEvents:', mergedEvents);
+
+                // Helper to normalize org id fields from event objects
+                const getOrgIdFromEvent = (event) => {
+                    return event.organization_id || event.org_id || event.organization?.id || event.orgId || null;
+                };
+
+                // Fetch organization data for all events (normalize ids)
+                const orgIds = [...new Set(res.data.map(event => getOrgIdFromEvent(event)).filter(Boolean))];
                 const orgMap = {};
-                
+
                 await Promise.all(
                     orgIds.map(async (orgId) => {
                         try {
@@ -54,7 +103,8 @@ export default function RegistrationsPanel({
                         }
                     })
                 );
-                
+
+                console.log('[RegistrationsPanel] orgMap:', orgMap);
                 setOrgDataMap(orgMap);
             }
             setLoading(false);
@@ -74,14 +124,17 @@ export default function RegistrationsPanel({
         return () => window.removeEventListener('registration:changed', handler);
     }, [user]);
 
-    // Update selectedOrg when selectedEvent changes
+    // Update selectedOrg when selectedEvent changes (support org_id or organization_id)
     useEffect(() => {
-        if (selectedEvent && selectedEvent.organization_id) {
-            const org = orgDataMap[selectedEvent.organization_id];
-            setSelectedOrg(org || null);
-        } else {
-            setSelectedOrg(null);
+        if (selectedEvent) {
+            const orgId = selectedEvent.organization_id || selectedEvent.org_id || selectedEvent.orgId;
+            if (orgId) {
+                const org = orgDataMap[orgId];
+                setSelectedOrg(org || null);
+                return;
+            }
         }
+        setSelectedOrg(null);
     }, [selectedEvent, orgDataMap]);
 
     const handleUnregister = async (eventId) => {
@@ -127,6 +180,11 @@ export default function RegistrationsPanel({
         }, 300);
         return () => clearTimeout(t);
     }, [searchValue]);
+
+    // Helper to normalize org id fields from event objects (exposed to render)
+    const getOrgIdFromEvent = (event) => {
+        return event.organization_id || event.org_id || event.organization?.id || event.orgId || null;
+    };
 
     // Derived: filtered and sorted events (soonest first)
     const displayedEvents = useMemo(() => {
@@ -245,9 +303,6 @@ export default function RegistrationsPanel({
                 >
                     Finished
                 </button>
-                <div className="ms-auto">
-                    <small className="text-secondary">Sorted: Soonest first</small>
-                </div>
             </div>
 
             {events.length > 0 ? (
@@ -256,11 +311,12 @@ export default function RegistrationsPanel({
                     <div className={"row mt-4 " + styles.eventsWrappers}>
                         <div className="col-md-4">
                             <div className={styles.eventList}>
-                                {displayedEvents.map(e => {
-                                    const org = orgDataMap[e.organization_id];
+                                {displayedEvents.map((e, idx) => {
+                                    const org = orgDataMap[getOrgIdFromEvent(e)];
+                                    const fallbackKey = `evt-${getOrgIdFromEvent(e) || 'noorg'}-${new Date(e.start_at).getTime()}-${idx}`;
                                     return (    
                                     <button
-                                        key={e.id}
+                                        key={e.id ?? fallbackKey}
                                         type="button"
                                         className={`${styles.eventListItem} ${selectedEvent === e ? styles.active : ''}`}
                                         onClick={() => setSelectedEvent(e)}
@@ -304,32 +360,75 @@ export default function RegistrationsPanel({
                         </div>
                         <div className="EventInfo-container col-md-8">
                             {selectedEvent ? (
-                                <div className={"EventInfo-card card p-3 shadow-sm EventInfo-container" + styles.detailCard + ' ' + styles.stickyDetail}>
-                                    <div className="d-flex gap-3 align-items-center mb-2">
-                                        {selectedOrg?.logo_url || selectedOrg?.image_url ? (
-                                            <img src={selectedOrg.logo_url || selectedOrg.image_url} alt={selectedOrg?.name} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }} />
-                                        ) : null}
-                                        <div className="flex-grow-1">
-                                            <div className="text-body-emphasis">{selectedOrg?.name}</div>
-                                            <h4 className="mb-0">{selectedEvent.title}</h4>
+                                (() => {
+                                    const start = new Date(selectedEvent.start_at);
+                                    const end = selectedEvent.end_at ? new Date(selectedEvent.end_at) : null;
+                                    const now = new Date();
+                                    let status = 'Upcoming';
+                                    if (end && now > end) status = 'Finished';
+                                    else if (now >= start && (!end || now <= end)) status = 'Ongoing';
+
+                                    return (
+                                    <div className={`${styles.eventInfoCard} card p-3 shadow-sm EventInfo-container ${styles.detailCard} ${styles.stickyDetail}`}>
+                                        {/* Event image (reserve space even if none) */}
+                                        <div style={{ width: '100%', maxHeight: 320, height: 200, overflow: 'hidden', borderRadius: 8, background: selectedEvent.image_url ? 'transparent' : 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="mb-3">
+                                            {selectedEvent.image_url ? (
+                                                <img src={selectedEvent.image_url} alt={selectedEvent.title} className="img-fluid" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            ) : (
+                                                <div style={{ color: '#9ca3af', fontWeight: 700 }}>{(selectedEvent.title || '?')[0]}</div>
+                                            )}
+                                        </div>
+
+                                        {/* Title */}
+                                        <h3 className="mb-1">{selectedEvent.title}</h3>
+
+                                        {/* Org image + name with fallbacks */}
+                                        {(() => {
+                                            const orgName = selectedOrg?.name || selectedEvent.organization_name || selectedEvent.organization?.name || selectedEvent.org_name || 'Organization';
+                                            const orgImage = selectedOrg?.logo_url || selectedOrg?.image_url || selectedEvent.organization_logo || selectedEvent.org_logo || selectedEvent.organization?.logo_url || null;
+                                            return (
+                                                <div className="d-flex align-items-center gap-2 mb-2">
+                                                    {orgImage ? (
+                                                        <img src={orgImage} alt={orgName} style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 8 }} />
+                                                    ) : (
+                                                        <div style={{ width: 48, height: 48, borderRadius: 8, background: 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontWeight: 700 }}>
+                                                            {orgName?.[0] || '?'}
+                                                        </div>
+                                                    )}
+                                                    <div>
+                                                        <div className="text-body-emphasis">{orgName}</div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+
+                                        {/* Description */}
+                                        <p className="mb-2">{selectedEvent.description}</p>
+
+                                        {/* Location */}
+                                        <p className="mb-1"><strong>Location:</strong> {selectedEvent.location_address || (typeof selectedEvent.location === 'string' ? selectedEvent.location : (selectedEvent.location?.city || selectedEvent.location?.name || (selectedEvent.location?.lat ? `${selectedEvent.location?.lat}, ${selectedEvent.location?.lon}` : 'TBD')))}</p>
+
+                                        {/* Date & time */}
+                                        <p className="mb-1"><strong>Start:</strong> {formatDateAtTime(start)}</p>
+
+                                        {/* Status & registration */}
+                                        <p className="mb-1"><strong>Event status:</strong> {selectedEvent.status || status}</p>
+                                        <p className="mb-1"><strong>Your registration:</strong> {selectedEvent.registration_status || (selectedEvent.is_registered ? 'registered' : 'not registered')}</p>
+
+                                        {/* Capacity */}
+                                        <p className="mb-1"><strong>Capacity:</strong> {selectedEvent.capacity}</p>
+
+                                        <div className="d-flex gap-2 mt-3">
+                                            <button 
+                                                className="btn btn-danger" 
+                                                onClick={() => handleUnregister(selectedEvent.id)}
+                                            >
+                                                Unregister
+                                            </button>
                                         </div>
                                     </div>
-                                    {selectedEvent.image_url && (
-                                        <img src={selectedEvent.image_url} alt={selectedEvent.title} className="img-fluid mb-3" style={{ borderRadius: '8px' }} />
-                                    )}
-                                    <p>{selectedEvent.description}</p>
-                                    <p className="mb-1"><strong>Location:</strong> {typeof selectedEvent.location === 'string' ? selectedEvent.location : (selectedEvent.location?.city || selectedEvent.location?.name || `${selectedEvent.location?.lat}, ${selectedEvent.location?.lon}`)}</p>
-                                    <p className="mb-1"><strong>Date & time:</strong> {formatDateAtTime(new Date(selectedEvent.start_at))}</p>
-                                    <p className="mb-1"><strong>Capacity:</strong> {selectedEvent.capacity}</p>
-                                    <div className="d-flex gap-2 mt-3">
-                                        <button 
-                                            className="btn btn-danger" 
-                                            onClick={() => handleUnregister(selectedEvent.id)}
-                                        >
-                                            Unregister
-                                        </button>
-                                    </div>
-                                </div>
+                                    );
+                                })()
                             ) : (
                                 <p className="text-center text-muted">Select an event to see details</p>
                             )}
@@ -338,10 +437,11 @@ export default function RegistrationsPanel({
                 ) : (
                     // Grid View
                     <div className="row g-3">
-                        {displayedEvents.map(e => {
-                            const orgData = orgDataMap[e.organization_id];
+                        {displayedEvents.map((e, idx) => {
+                            const orgData = orgDataMap[getOrgIdFromEvent(e)];
+                            const fallbackKey = `evt-${getOrgIdFromEvent(e) || 'noorg'}-${new Date(e.start_at).getTime()}-${idx}`;
                             return (
-                                <div key={e.id} className="col-md-6 col-lg-4">
+                                <div key={e.id ?? fallbackKey} className="col-md-6 col-lg-4">
                                     <div 
                                         className={styles.eventCard}
                                         onClick={() => setSelectedEvent(e)}

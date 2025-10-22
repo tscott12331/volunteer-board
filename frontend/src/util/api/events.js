@@ -61,6 +61,19 @@ export async function fetchOrganization(id) {
     }
 }
 
+// fetch a single event by id
+export async function fetchEventById(id) {
+    if (!id) return APIError('Event ID is undefined');
+
+    try {
+        const res = await supabase.from('events').select('*').eq('id', id).limit(1);
+        if (res.error) return APIError(res.error.message);
+        return APISuccess(res.data[0]);
+    } catch (error) {
+        return APIError('Server error');
+    }
+}
+
 // register a user to an event based on its id
 export async function registerForEvent(eventId) {
     try {
