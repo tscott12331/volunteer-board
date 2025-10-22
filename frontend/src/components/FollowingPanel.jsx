@@ -18,7 +18,7 @@ export default function FollowingPanel({
 
     const handleUnfollow = (id) => {
         setOrgs(cur => {
-            const index = cur.findIndex(o => o.organization_id === id);
+            const index = cur.findIndex(o => o.id === id);
             if(index !== -1) {
                 const newOrgs = [...cur.slice(0, index), ...cur.slice(index + 1)];
                 return newOrgs;
@@ -47,7 +47,7 @@ export default function FollowingPanel({
                 <FollowedOrgCard 
                     org={org} 
                     onUnfollow={handleUnfollow}
-                    key={org.organization_id} 
+                    key={org.id} 
                 />
             )
             }

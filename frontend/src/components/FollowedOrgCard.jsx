@@ -15,9 +15,9 @@ export default function FollowedOrgCard({
     // unfollows a user from an organization
     const handleUnfollow = async (e) => {
         e.stopPropagation();
-        const res = await unfollowOrganization(org.organization_id);
+        const res = await unfollowOrganization(org.id);
         if(res.success) {
-            onUnfollow?.(org.organization_id);
+            onUnfollow?.(org.id);
         }
     }
 
@@ -27,7 +27,11 @@ export default function FollowedOrgCard({
             onClick={() => navigate(`/org/${org.slug}`)}
         >
             <div className="d-flex align-content-center gap-3">
-                <img className={"img-fluid d-inline-block " + styles.logo} src={org.logo_url} />
+                {org.logo_url ?
+                <img className={`${styles.logo} d-flex align-items-center justify-content-center`} src={org.logo_url} />
+                :
+                <div className={`${styles.logo} d-flex align-items-center justify-content-center`}>{org.name[0]}</div>
+                }
                 <h3 className={"fw-semibold mb-0 " + styles.name}>{org.name}</h3>
             </div>
             <button 
