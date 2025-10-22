@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
-import EventInfoModal from "./EventInfoModal";
-import RegisteredEventCard from "./RegisteredEventCard";
-import { fetchRegisteredEvents } from "../util/api/events";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from 'react-router-dom';
+import { fetchRegisteredEvents, fetchOrganization, unregisterFromEvent, fetchEventById } from "../util/api/events";
+import { DEFAULT_EVENT_IMAGE, SMALL_DEFAULT_EVENT_IMAGE, DEFAULT_EVENT_LOGO } from '../util/defaults';
+import { formatDateAtTime } from '../util/date';
+import styles from './RegistrationsPanel.module.css';
 
 /*
     * Panel on the volunteer dashboard that displays the events a 
@@ -16,41 +18,653 @@ export default function RegistrationsPanel({
 }) {
     // events the user is registered to
     const [events, setEvents] = useState([]);
-
-    // currently selected event that will be displayed on the event info modal
-    const [selectedEvent, setSelectedEvent] = useState(undefined)
+    const [orgDataMap, setOrgDataMap] = useState({});
+    const [loading, setLoading] = useState(true);
+    const [viewMode, setViewMode] = useState('list'); // 'list' or 'grid'
+    const [searchValue, setSearchValue] = useState("");
+    const [searchQuery, setSearchQuery] = useState(undefined);
+    // simplified view filter: 'upcoming' | 'all' | 'finished'
+    const [viewFilter, setViewFilter] = useState('upcoming');
     
-    useEffect(() => {
-        // fetch a events that a user is registered to
-        fetchRegisteredEvents(user.id).then(res => {
+    // pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5; // 5 events per page
+
+    // currently selected event that will be displayed in detail panel
+    const [selectedEvent, setSelectedEvent] = useState(undefined);
+    const [selectedOrg, setSelectedOrg] = useState(undefined)
+    
+    const loadRegistrations = async () => {
+        if (!user?.id) {
+            setLoading(false);
+            return;
+        }
+        
+        setLoading(true);
+        fetchRegisteredEvents(user.id).then(async (res) => {
             if(res.success) {
-                // set events on fetch success
-                setEvents(res.data);
+                // Normalize events: ensure each event has an `id` property (fallbacks: event_id, eventId)
+                const normalizedEvents = (res.data || []).map((ev) => ({
+                    ...ev,
+                    id: ev.id || ev.event_id || ev.eventId || null,
+                }));
+
+                // set events on fetch success (use normalized)
+                setEvents(normalizedEvents);
+
+                // Debug: log fetched registrations (normalized + per-event)
+                console.log('[RegistrationsPanel] fetched registrations (normalized):', normalizedEvents);
+                console.log('[RegistrationsPanel] registrations count:', normalizedEvents.length);
+                normalizedEvents.forEach((ev, i) => {
+                    console.log(`[RegistrationsPanel] normalized event[${i}] id=${ev.id}`, ev);
+                    if (!ev?.id) {
+                        console.warn(`[RegistrationsPanel] normalized event[${i}] is still missing id field`, ev);
+                    }
+                });
+
+                // For registrations that don't contain organization/location info, fetch the full event record
+                const mergedEvents = await Promise.all(normalizedEvents.map(async (reg) => {
+                    // If registration already includes useful event info like location or organization, keep it
+                    const hasLocation = !!(reg.location || reg.location_address || reg.venue || reg.address);
+                    const hasOrg = !!(reg.organization || reg.organization_id || reg.org_id || reg.organization_name || reg.organization_logo);
+                    if (hasLocation && hasOrg) return reg;
+
+                    // otherwise try to fetch the event by id (use event_id or id)
+                    const eventId = reg.id || reg.event_id || reg.eventId;
+                    if (!eventId) return reg;
+
+                    try {
+                        const evRes = await fetchEventById(eventId);
+                        if (evRes.success && evRes.data) {
+                            // merge event record into registration object (prefer registration fields when present)
+                            return { ...evRes.data, ...reg, id: evRes.data.id || reg.id };
+                        }
+                    } catch (err) {
+                        console.error('Error fetching event details for', eventId, err);
+                    }
+                    return reg;
+                }));
+
+                // Use merged events going forward
+                setEvents(mergedEvents);
+
+                console.log('[RegistrationsPanel] mergedEvents:', mergedEvents);
+
+                // Helper to normalize org id fields from event objects
+                const getOrgIdFromEvent = (event) => {
+                    return event.organization_id || event.org_id || event.organization?.id || event.orgId || null;
+                };
+
+                // Fetch organization data for all events (normalize ids)
+                const orgIds = [...new Set(mergedEvents.map(event => getOrgIdFromEvent(event)).filter(Boolean))];
+                const orgMap = {};
+
+                await Promise.all(
+                    orgIds.map(async (orgId) => {
+                        try {
+                            const orgData = await fetchOrganization(orgId);
+                            // fetchOrganization returns { success: true, data } on success.
+                            // store the raw org object in the map so renderers can use org.name etc.
+                            orgMap[orgId] = orgData && orgData.success ? orgData.data : orgData;
+                        } catch (error) {
+                            console.error(`Error fetching organization ${orgId}:`, error);
+                        }
+                    })
+                );
+
+                console.log('[RegistrationsPanel] orgMap:', orgMap);
+                setOrgDataMap(orgMap);
             }
+            setLoading(false);
         })
-    }, []);
+    };
+
+    useEffect(() => {
+        loadRegistrations();
+    }, [user]);
+
+    useEffect(() => {
+        const handler = () => {
+            // when registration changes elsewhere, refetch
+            loadRegistrations();
+        };
+        window.addEventListener('registration:changed', handler);
+        return () => window.removeEventListener('registration:changed', handler);
+    }, [user]);
+
+    // Update selectedOrg when selectedEvent changes (support org_id or organization_id)
+    useEffect(() => {
+        if (selectedEvent) {
+            const orgId = selectedEvent.organization_id || selectedEvent.org_id || selectedEvent.orgId;
+            if (orgId) {
+                const raw = orgDataMap[orgId];
+                const org = raw?.data ? raw.data : raw; // tolerate both APISuccess or raw object
+                setSelectedOrg(org || null);
+                return;
+            }
+        }
+        setSelectedOrg(null);
+    }, [selectedEvent, orgDataMap]);
+
+    const handleUnregister = async (eventId) => {
+        if (!user?.id) return;
+        
+        if (!confirm('Are you sure you want to unregister from this event?')) {
+            return;
+        }
+        
+        try {
+            const res = await unregisterFromEvent(eventId, user.id);
+            
+            if (res.success) {
+                await loadRegistrations();
+                if (selectedEvent?.id === eventId) {
+                    setSelectedEvent(undefined);
+                }
+                // Notify other components
+                window.dispatchEvent(new CustomEvent('registration:changed', { detail: { eventId, action: 'unregistered' } }));
+            } else {
+                alert(res.error || 'Failed to unregister from event');
+            }
+        } catch (error) {
+            console.error('Error unregistering:', error);
+            alert('Failed to unregister from event');
+        }
+    };
+
+    const filterEventBySearch = (e, query) => {
+        if(!query) return true;
+        return e.title.toLowerCase().includes(query.toLowerCase());
+    };
+
+    const search = () => {
+        setSearchQuery(searchValue.length > 0 ? searchValue : undefined);
+    };
+
+    const onSearchInputChange = (e) => {
+        setSearchValue(e.target.value);
+    };
+
+    const onSearchInputKeyDown = (e) => {
+        if(e.key === "Enter") {
+            search();
+        }
+    };
+
+    // Debounce search as you type (300ms)
+    useEffect(() => {
+        const t = setTimeout(() => {
+            setSearchQuery(searchValue.length > 0 ? searchValue : undefined);
+        }, 300);
+        return () => clearTimeout(t);
+    }, [searchValue]);
+
+    // Helper to normalize org id fields from event objects (exposed to render)
+    const getOrgIdFromEvent = (event) => {
+        return event.organization_id || event.org_id || event.organization?.id || event.orgId || null;
+    };
+
+    // Derived: filtered and sorted events (soonest first)
+    const filteredEvents = useMemo(() => {
+        const now = new Date();
+        const arr = (events || []).filter(e => {
+            // Filter out cancelled registrations (same as DiscoverPanel and OrgPage)
+            if (e.status === 'cancelled' || e.registration_status === 'cancelled') return false;
+            if (searchQuery && !e.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+            const d = new Date(e.start_at);
+            if (viewFilter === 'upcoming' && d < now) return false;
+            if (viewFilter === 'finished' && d >= now) return false;
+            return true;
+        });
+        return arr.sort((a, b) => new Date(a.start_at) - new Date(b.start_at));
+    }, [events, searchQuery, viewFilter]);
+    
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, viewFilter]);
+    
+    // Calculate pagination
+    const totalPages = Math.ceil(filteredEvents.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const displayedEvents = filteredEvents.slice(startIndex, endIndex);
+
+    const hoursBetween = (startAt, endAt) => {
+        try {
+            const s = new Date(startAt);
+            const e = new Date(endAt);
+            const ms = Math.max(0, e - s);
+            const hours = ms / (1000 * 60 * 60);
+            return Math.round(hours * 100) / 100;
+        } catch {
+            return 0;
+        }
+    };
+
+    if (loading) {
+        return (
+            <div style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>
+                <div className="spinner-border" role="status" style={{ color: '#667eea' }}>
+                    <span className="visually-hidden">Loading...</span>
+                </div>
+                <p style={{ marginTop: '1rem' }}>Loading your registrations...</p>
+            </div>
+        );
+    }
 
     return (
-        <>
-        <h2 className="mb-4 fw-bold">My Registrations</h2>
-        {
-        events.length > 0 ?
-            <div className="d-flex flex-column gap-3 mt-4">
-            {
-            events.map(e =>
-                <RegisteredEventCard 
-                    key={e.event_id}
-                    event={e} 
-                    onView={(e) => setSelectedEvent(e)}
-                />
-            )
-            }
+        <div className="RegistrationsPanel-component">
+            <h2 className="mb-4 d-flex justify-content-between align-items-center" style={{ 
+                color: '#fff',
+                fontSize: '1.75rem',
+                fontWeight: 700
+            }}>
+                My Registrations
+                <div className={styles.splitPill}>
+                    <button
+                        type="button"
+                        onClick={() => setViewMode('list')}
+                        className={`${styles.pillBtn} ${viewMode === 'list' ? styles.pillBtnActive : ''}`}
+                        title="List view"
+                    >
+                        <i className={`bi bi-list-ul ${styles.pillIcon}`} />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setViewMode('grid')}
+                        className={`${styles.pillBtn} ${viewMode === 'grid' ? styles.pillBtnActive : ''}`}
+                        title="Grid view"
+                    >
+                        <i className={`bi bi-grid-3x3-gap ${styles.pillIcon}`} />
+                    </button>
+                </div>
+            </h2>
+
+            {/* Search Bar (combined input + icon button) */}
+            <div className="mb-3" style={{ maxWidth: '720px' }}>
+                <div className="input-group">
+                    <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Search for events"
+                        value={searchValue}
+                        onChange={onSearchInputChange}
+                        onKeyDown={onSearchInputKeyDown}
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            color: '#fff',
+                            // make the input flush with the appended button
+                            borderRadius: '8px 0 0 8px'
+                        }}
+                    />
+                    <button
+                        className="btn btn-primary"
+                        type="button"
+                        onClick={search}
+                        title="Search"
+                        style={{ borderRadius: '0 8px 8px 0', padding: '0.45rem 0.7rem' }}
+                    >
+                        <i className="bi bi-search" />
+                    </button>
+                </div>
             </div>
-        :
-            <p className="mt-4">You have not registered for any events</p>
-        }
-        <EventInfoModal id="register-info-modal" event={selectedEvent} isRegistered={true} />
-        </>
-        
+
+            {/* Quick view filter: Upcoming / All / Finished */}
+            <div className="d-flex gap-2 mb-3">
+                <button
+                    className={`btn ${viewFilter === 'upcoming' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                    onClick={() => setViewFilter('upcoming')}
+                    style={{ padding: '0.4rem 0.8rem' }}
+                >
+                    Upcoming
+                </button>
+                <button
+                    className={`btn ${viewFilter === 'all' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                    onClick={() => setViewFilter('all')}
+                    style={{ padding: '0.4rem 0.8rem' }}
+                >
+                    All
+                </button>
+                <button
+                    className={`btn ${viewFilter === 'finished' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                    onClick={() => setViewFilter('finished')}
+                    style={{ padding: '0.4rem 0.8rem' }}
+                >
+                    Finished
+                </button>
+            </div>
+
+            {events.length > 0 ? (
+                viewMode === 'list' ? (
+                    // Two-column layout matching Discover
+                    <div className={"row mt-4 " + styles.eventsWrappers} style={{ minHeight: '600px' }}>
+                        <div className="col-md-4">
+                            <div className={styles.eventList}>
+                                {displayedEvents.map((e, idx) => {
+                                    const org = orgDataMap[getOrgIdFromEvent(e)];
+                                    const fallbackKey = `evt-${getOrgIdFromEvent(e) || 'noorg'}-${new Date(e.start_at).getTime()}-${idx}`;
+                                    return (    
+                                    <button
+                                        key={e.id ?? fallbackKey}
+                                        type="button"
+                                        className={`${styles.eventListItem} ${selectedEvent === e ? styles.active : ''}`}
+                                        onClick={() => setSelectedEvent(e)}
+                                    >
+                                        <div className="d-flex w-100 gap-3 align-items-start">
+                                            {/* Thumbnail */}
+                                            <div style={{ width: 72, height: 72, flex: '0 0 72px', borderRadius: 8, overflow: 'hidden', background: 'rgba(255,255,255,0.02)' }}>
+                                                <img src={e.image_url || org?.logo_url || org?.image_url || DEFAULT_EVENT_LOGO || SMALL_DEFAULT_EVENT_IMAGE} alt={e.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            </div>
+
+                                            <div className="flex-grow-1 text-start">
+                                                <div className="d-flex w-100 justify-content-between align-items-start mb-1">
+                                                    <div className="d-flex align-items-center gap-2">
+                                                        <h6 className="mb-0 fw-semibold">{e.title}</h6>
+                                                    </div>
+                                                </div>
+
+                                                <div className="d-flex align-items-center gap-3" style={{ fontSize: '0.9rem' }}>
+                                                    <div className="d-flex align-items-center gap-2">
+                                                        <i className="bi bi-clock text-muted" style={{ fontSize: '0.95rem' }}></i>
+                                                        <small className="text-muted">{hoursBetween(e.start_at, e.end_at)} hrs</small>
+                                                    </div>
+                                                    <div className="ms-auto">
+                                                        <small className={styles.dateText}>{new Date(e.start_at).toLocaleDateString()}</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </button>
+                                );
+                                })}
+                            </div>
+                        </div>
+                        <div className="EventInfo-container col-md-8">
+                            {selectedEvent ? (
+                                (() => {
+                                    const start = new Date(selectedEvent.start_at);
+                                    const end = selectedEvent.end_at ? new Date(selectedEvent.end_at) : null;
+                                    const now = new Date();
+                                    let status = 'Upcoming';
+                                    if (end && now > end) status = 'Finished';
+                                    else if (now >= start && (!end || now <= end)) status = 'Ongoing';
+
+                                    return (
+                                    <div className={`${styles.eventInfoCard} card p-3 shadow-sm EventInfo-container ${styles.detailCard} ${styles.stickyDetail}`}>
+                                        {/* Event image (reserve space even if none) */}
+                                        <div style={{ width: '100%', maxHeight: 320, height: 200, overflow: 'hidden', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="mb-3">
+                                            <img src={selectedEvent.image_url || DEFAULT_EVENT_IMAGE} alt={selectedEvent.title} className="img-fluid" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        </div>
+
+                                        {/* Title */}
+                                        <h3 className="mb-1">{selectedEvent.title}</h3>
+
+                                        {/* Org image + name with fallbacks */}
+                                        {(() => {
+                                            const orgName = selectedOrg?.name || selectedEvent.organization_name || selectedEvent.organization?.name || selectedEvent.org_name || 'Organization';
+                                            const orgImage = selectedOrg?.logo_url || selectedOrg?.image_url || selectedEvent.organization_logo || selectedEvent.org_logo || selectedEvent.organization?.logo_url || null;
+                                            return (
+                                                <div className="d-flex align-items-center gap-2 mb-2">
+                                                    {orgImage ? (
+                                                        <img src={orgImage || DEFAULT_EVENT_LOGO} alt={orgName} style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 8 }} />
+                                                    ) : (
+                                                        <img src={DEFAULT_EVENT_LOGO} alt={orgName} style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 8 }} />
+                                                    )}
+                                                    <div>
+                                                        <div className="text-body-emphasis">
+                                                            {(() => {
+                                                                const orgSlug = selectedOrg?.slug || selectedEvent.organization_slug || selectedEvent.org_slug || selectedEvent.slug || null;
+                                                                return orgSlug ? <Link to={`/org/${orgSlug}`}>{orgName}</Link> : orgName;
+                                                            })()}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+
+                                        {/* Description */}
+                                        <p className="mb-2">{selectedEvent.description}</p>
+
+                                        {/* Location (robust) */}
+                                        {(() => {
+                                            const loc = selectedEvent.location;
+                                            const addr = selectedEvent.location_address || selectedEvent.address || selectedEvent.venue || null;
+                                            let locationText = 'TBD';
+                                            if (addr) locationText = addr;
+                                            else if (typeof loc === 'string') locationText = loc;
+                                            else if (loc && typeof loc === 'object') {
+                                                locationText = loc.address || loc.name || loc.city || (loc.lat ? `${loc.lat}, ${loc.lon ?? ''}`.trim() : 'TBD');
+                                            }
+                                            return <p className="mb-1"><strong>Location:</strong> {locationText}</p>;
+                                        })()}
+
+                                        {/* Date & time */}
+                                        <p className="mb-1"><strong>Start:</strong> {formatDateAtTime(start)}</p>
+
+                                        {/* Registration */}
+                                        <p className="mb-1"><strong>Your registration:</strong> {selectedEvent.registration_status || (selectedEvent.is_registered ? 'registered' : 'not registered')}</p>
+
+                                        {/* Capacity */}
+                                        <p className="mb-1"><strong>Capacity:</strong> {selectedEvent.capacity}</p>
+
+                                        <div className="d-flex gap-2 mt-3">
+                                            <button 
+                                                className="btn btn-danger" 
+                                                onClick={() => handleUnregister(selectedEvent.id)}
+                                            >
+                                                Unregister
+                                            </button>
+                                        </div>
+                                    </div>
+                                    );
+                                })()
+                            ) : (
+                                <p className="text-center text-muted">Select an event to see details</p>
+                            )}
+                        </div>
+                    </div>
+                ) : (
+                    // Grid View
+                    <div className="row g-3" style={{ minHeight: '600px' }}>
+                        {displayedEvents.map((e, idx) => {
+                            const orgData = orgDataMap[getOrgIdFromEvent(e)];
+                            const fallbackKey = `evt-${getOrgIdFromEvent(e) || 'noorg'}-${new Date(e.start_at).getTime()}-${idx}`;
+                            return (
+                                <div key={e.id ?? fallbackKey} className="col-md-6 col-lg-4">
+                                    <div 
+                                        className={styles.eventCard}
+                                        onClick={() => setSelectedEvent(e)}
+                                    >
+                                        {e.image_url && (
+                                            <div className={styles.eventCardImage}>
+                                                <img src={e.image_url} alt={e.title} />
+                                            </div>
+                                        )}
+                                        <div className={styles.eventCardBody}>
+                                            {/* Organization */}
+                                            <div className="d-flex align-items-center gap-2 mb-2">
+                                                {orgData?.logo_url || orgData?.image_url ? (
+                                                    <img 
+                                                        src={orgData.logo_url || orgData.image_url} 
+                                                        alt={orgData?.name} 
+                                                        style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: '50%' }} 
+                                                    />
+                                                ) : (
+                                                    <div style={{ 
+                                                        width: 32, 
+                                                        height: 32, 
+                                                        borderRadius: '50%', 
+                                                        background: 'rgba(102, 126, 234, 0.2)',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: 600,
+                                                        color: '#667eea'
+                                                    }}>
+                                                        {orgData?.name?.[0] || '?'}
+                                                    </div>
+                                                )}
+                                                        <small className="text-muted">
+                                                            {(() => {
+                                                                const orgSlug = orgData?.slug || e.organization_slug || e.org_slug || e.slug || null;
+                                                                const name = orgData?.name || 'Loading...';
+                                                                return orgSlug ? <Link to={`/org/${orgSlug}`}>{name}</Link> : name;
+                                                            })()}
+                                                        </small>
+                                            </div>
+                                            
+                                            <h5 className={styles.eventCardTitle}>{e.title}</h5>
+                                            
+                                            <p className={styles.eventCardDescription}>
+                                                {e.description?.substring(0, 100)}{e.description?.length > 100 ? '...' : ''}
+                                            </p>
+                                            
+                                            <div style={{ 
+                                                display: 'flex', 
+                                                flexDirection: 'column', 
+                                                gap: '0.5rem',
+                                                marginTop: 'auto',
+                                                paddingTop: '1rem',
+                                                borderTop: '1px solid rgba(255, 255, 255, 0.05)'
+                                            }}>
+                                                <div className="d-flex align-items-center gap-2">
+                                                    <i className="bi bi-calendar-event" style={{ fontSize: '0.875rem', color: '#667eea' }}></i>
+                                                    <small>{new Date(e.start_at).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</small>
+                                                </div>
+                                                
+                                                <div className="d-flex align-items-center gap-2">
+                                                    <i className="bi bi-people" style={{ fontSize: '0.875rem', color: '#667eea' }}></i>
+                                                    <small>{e.capacity} spots</small>
+                                                </div>
+                                                
+                                                {/* Buttons */}
+                                                <div className="d-flex gap-2 mt-2">
+                                                    <button
+                                                        className="btn btn-primary btn-sm flex-fill"
+                                                        onClick={(ev) => {
+                                                            ev.stopPropagation();
+                                                            setSelectedEvent(e);
+                                                        }}
+                                                        style={{
+                                                            background: '#007bff',
+                                                            border: 'none'
+                                                        }}
+                                                    >
+                                                        View Details
+                                                    </button>
+                                                    <button
+                                                        className="btn btn-danger btn-sm flex-fill"
+                                                        onClick={(ev) => {
+                                                            ev.stopPropagation();
+                                                            handleUnregister(e.id);
+                                                        }}
+                                                    >
+                                                        Unregister
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )
+            ) : (
+                <div style={{ 
+                    textAlign: 'center', 
+                    padding: '3rem',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid rgba(255, 255, 255, 0.05)',
+                    borderRadius: '12px'
+                }}>
+                    <i className="bi bi-calendar-x" style={{ fontSize: '3rem', color: '#667eea', marginBottom: '1rem' }}></i>
+                    <p style={{ color: '#9ca3af', fontSize: '1.125rem', marginBottom: '0.5rem' }}>You haven't registered for any events yet.</p>
+                    <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: 0 }}>Discover events and start making a difference!</p>
+                </div>
+            )}
+            
+            {/* Pagination Controls - Fixed height container to prevent layout shifts */}
+            <nav 
+                aria-label="Registration pagination" 
+                className="mt-4" 
+                style={{ 
+                    minHeight: '60px',
+                    display: 'flex',
+                    alignItems: 'center'
+                }}
+            >
+                {filteredEvents.length > itemsPerPage ? (
+                    <div className="d-flex justify-content-between align-items-center w-100">
+                        <div className="text-muted small" style={{ minWidth: '180px' }}>
+                            Showing {startIndex + 1}-{Math.min(endIndex, filteredEvents.length)} of {filteredEvents.length} events
+                        </div>
+                        <ul className="pagination mb-0" style={{ minWidth: '300px', justifyContent: 'center' }}>
+                            <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                                <button 
+                                    className="page-link" 
+                                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                    disabled={currentPage === 1}
+                                    aria-label="Previous page"
+                                    style={{ minWidth: '40px' }}
+                                >
+                                    <i className="bi bi-chevron-left"></i>
+                                </button>
+                            </li>
+                            
+                            {/* Page numbers */}
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => {
+                                // Show first, last, current, and adjacent pages
+                                if (
+                                    pageNum === 1 ||
+                                    pageNum === totalPages ||
+                                    (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                                ) {
+                                    return (
+                                        <li key={pageNum} className={`page-item ${currentPage === pageNum ? 'active' : ''}`}>
+                                            <button 
+                                                className="page-link" 
+                                                onClick={() => setCurrentPage(pageNum)}
+                                                style={{ minWidth: '40px' }}
+                                            >
+                                                {pageNum}
+                                            </button>
+                                        </li>
+                                    );
+                                } else if (
+                                    pageNum === currentPage - 2 ||
+                                    pageNum === currentPage + 2
+                                ) {
+                                    return (
+                                        <li key={pageNum} className="page-item disabled">
+                                            <span className="page-link" style={{ minWidth: '40px' }}>...</span>
+                                        </li>
+                                    );
+                                }
+                                return null;
+                            })}
+                            
+                            <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                                <button 
+                                    className="page-link" 
+                                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                    disabled={currentPage === totalPages}
+                                    aria-label="Next page"
+                                    style={{ minWidth: '40px' }}
+                                >
+                                    <i className="bi bi-chevron-right"></i>
+                                </button>
+                            </li>
+                        </ul>
+                        <div style={{ minWidth: '180px' }}></div> {/* Spacer for balance */}
+                    </div>
+                ) : (
+                    <div style={{ height: '1px' }}></div> // Invisible placeholder when no pagination needed
+                )}
+            </nav>
+        </div>
     );
 }

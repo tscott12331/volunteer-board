@@ -18,6 +18,7 @@ export default function CheckInModal({ event, onClose, onCheckInComplete }) {
     const [statusFilter, setStatusFilter] = useState('');
     const [page, setPage] = useState(0);
     const [limit] = useState(25); // page size
+    const [changed, setChanged] = useState(false); // track if any check-in toggles occurred
 
     useEffect(() => {
         loadRegistrations();
@@ -55,29 +56,36 @@ export default function CheckInModal({ event, onClose, onCheckInComplete }) {
             setToast(newStatus === 'checked_in' ? 'Checked in!' : 'Unchecked!');
             setTimeout(() => setToast(null), 2000);
             await loadRegistrations();
-            if (onCheckInComplete) onCheckInComplete();
+            setChanged(true);
         } else {
-            alert('Failed to update check-in status: ' + result.message);
+            alert('Failed to update check-in status: ' + (result.error || 'Unknown error'));
         }
         setUpdating(false);
+    };
+
+    const handleClose = () => {
+        if (changed && onCheckInComplete) {
+            onCheckInComplete(); // refresh parent counts once when closing
+        }
+        onClose && onClose();
     };
 
 
     const filteredRegistrations = Array.isArray(registrations)
         ? registrations.filter(reg => {
-            const name = reg.display_name || reg.full_name || '';
-            return name.toLowerCase().includes(searchQuery.toLowerCase());
+            const combined = `${reg.full_name || ''} ${reg.display_name || ''}`.trim();
+            return combined.toLowerCase().includes(searchQuery.toLowerCase());
         })
         : [];
 
     return (
-        <div className={styles.modalOverlay} onClick={onClose}>
+        <div className={styles.modalOverlay} onClick={handleClose}>
             <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
                 <div className={styles.modalHeader}>
                     <h2 className={styles.modalTitle}>Check-In: {event.title}</h2>
                     <button
                         className={styles.closeButton}
-                        onClick={onClose}
+                        onClick={handleClose}
                         type="button"
                     >
                         ×
@@ -122,54 +130,60 @@ export default function CheckInModal({ event, onClose, onCheckInComplete }) {
                             {searchQuery ? 'No volunteers found' : 'No registrations yet'}
                         </div>
                     ) : (
-                        filteredRegistrations.map(registration => {
-                            const name = registration.display_name || registration.full_name || 'Unknown';
+                        filteredRegistrations.map((registration, idx) => {
+                            const full = (registration.full_name || '').trim();
+                            const alias = (registration.display_name || '').trim();
+                            const primary = full || alias || 'Unknown';
+                            const secondary = full && alias && alias !== full ? alias : null;
                             const isCheckedIn = registration.status === 'checked_in';
                             const regTime = registration.created_at ? new Date(registration.created_at).toLocaleString() : null;
                             return (
-                                <div key={registration.registration_id || registration.id} className={styles.registrationItem}>
+                                <div key={registration.registration_id || registration.id || `reg-${idx}`} className={styles.registrationItem}>
                                     <div className={styles.volunteerInfo}>
-                                        {registration.avatar_url ? (
-                                            <img 
-                                                src={registration.avatar_url} 
-                                                alt={name}
+                                        {(registration.logo_url || registration.avatar_url) ? (
+                                            <img
+                                                src={registration.logo_url || registration.avatar_url}
+                                                alt={primary}
                                                 className={styles.avatar}
                                             />
                                         ) : (
                                             <div className={styles.avatarPlaceholder}>
-                                                {name.charAt(0).toUpperCase()}
+                                                {primary.charAt(0).toUpperCase()}
                                             </div>
                                         )}
-                                        <span className={styles.volunteerName}>{name}</span>
-                                        {regTime && (
-                                            <span className={styles.regTime}>Registered: {regTime}</span>
-                                        )}
-                                    </div>
-                                    <div className={styles.statusArea}>
-                                        {isCheckedIn ? (
-                                            <>
-                                                <span className="text-success fw-bold me-2">
-                                                    <i className="bi bi-check-circle-fill me-1"></i>Checked In
-                                                </span>
+
+                                        <div className={styles.volunteerDetails}>
+                                            <div className="fw-bold">{primary}</div>
+                                            {secondary && <div className="text-muted small">{secondary}</div>}
+                                            {regTime && <div className="text-muted small">{regTime}</div>}
+                                        </div>
+
+                                        <div className={styles.actionArea}>
+                                            {isCheckedIn ? (
+                                                <>
+                                                    <span className="text-success fw-bold me-2">
+                                                        <i className="bi bi-check-circle-fill me-1"></i>Checked In
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        className={`btn btn-outline-secondary btn-sm`}
+                                                        onClick={() => handleCheckIn(registration.registration_id || registration.id, registration.status)}
+                                                        disabled={updating}
+                                                    >
+                                                        Uncheck
+                                                    </button>
+                                                </>
+                                            ) : (
                                                 <button
                                                     type="button"
-                                                    className={`btn btn-outline-secondary btn-sm`}
+                                                    className={`btn btn-outline-primary btn-sm`}
                                                     onClick={() => handleCheckIn(registration.registration_id || registration.id, registration.status)}
                                                     disabled={updating}
                                                 >
-                                                    Uncheck
+                                                    Check In
                                                 </button>
-                                            </>
-                                        ) : (
-                                            <button
-                                                type="button"
-                                                className={`btn btn-outline-primary btn-sm`}
-                                                onClick={() => handleCheckIn(registration.registration_id || registration.id, registration.status)}
-                                                disabled={updating}
-                                            >
-                                                Check In
-                                            </button>
-                                        )}
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             );

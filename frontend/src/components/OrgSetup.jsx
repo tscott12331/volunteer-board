@@ -136,23 +136,26 @@ export default function OrgSetup({ user }) {
                         </small>
                     </div>
 
-                    <button
-                        type="submit"
-                        className="btn btn-primary btn-lg w-100"
-                        disabled={isSubmitting}
-                    >
-                        {isSubmitting ? (
-                            <>
-                                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                Creating Organization...
-                            </>
-                        ) : (
-                            <>
-                                Complete Setup
-                                <i className="bi bi-arrow-right ms-2"></i>
-                            </>
-                        )}
-                    </button>
+                    <div className="d-flex justify-content-end gap-2 pt-3" style={{ borderTop: '1px solid #3a3f44' }}>
+                        <button
+                            type="submit"
+                            className="btn btn-primary btn-lg"
+                            disabled={isSubmitting}
+                            style={{ minWidth: '200px' }}
+                        >
+                            {isSubmitting ? (
+                                <>
+                                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    Creating Organization...
+                                </>
+                            ) : (
+                                <>
+                                    Complete Setup
+                                    <i className="bi bi-arrow-right ms-2"></i>
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </form>
 
                 <div className={styles.footer}>

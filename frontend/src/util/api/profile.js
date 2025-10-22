@@ -2,8 +2,13 @@ import { APIError, APISuccess } from './api-response';
 import { supabase } from './supabaseClient';
 
 const formatTimezone = (timezone) => {
-    // replace underscores with space
+    // replace underscores with space for display
     return timezone ? timezone.replace(/_/g, ' ') : null;
+}
+
+const normalizeTimezone = (timezone) => {
+    // replace spaces with underscores for database storage
+    return timezone ? timezone.replace(/ /g, '_') : null;
 }
 
 export async function fetchProfile(userId) {
@@ -27,6 +32,26 @@ export async function fetchProfile(userId) {
                     data = { ...data, onboarding_complete: basic.onboarding_complete, timezone: basic.timezone ?? data.timezone };
                 }
             }
+            
+            // Fetch availability separately and merge
+            const { data: availData, error: availError } = await supabase
+                .from('volunteer_availability')
+                .select('day, start_time, end_time, timezone')
+                .eq('user_id', userId);
+            
+            if (!availError && availData) {
+                // Convert array to object keyed by day
+                const availability = {};
+                availData.forEach(record => {
+                    availability[record.day] = {
+                        enabled: true,
+                        start: record.start_time,
+                        end: record.end_time
+                    };
+                });
+                data.availability = availability;
+            }
+            
             return APISuccess({
                 ...data,
                 timezone: formatTimezone(data.timezone),
@@ -36,11 +61,32 @@ export async function fetchProfile(userId) {
         // Fallback: direct query from profiles (minimal fields used by UI/Guard)
         const { data, error } = await supabase
             .from('profiles')
+            // profiles table may still use `avatar_url` (migration to logo_url may not be applied),
+            // request avatar_url for compatibility.
             .select('id, full_name, display_name, avatar_url, phone, bio, timezone, onboarding_complete')
             .eq('id', userId)
             .maybeSingle();
         if (error) return APIError(error.message);
         if (!data) return APISuccess(null);
+        
+        // Fetch availability for fallback path too
+        const { data: availData, error: availError } = await supabase
+            .from('volunteer_availability')
+            .select('day, start_time, end_time, timezone')
+            .eq('user_id', userId);
+        
+        if (!availError && availData) {
+            const availability = {};
+            availData.forEach(record => {
+                availability[record.day] = {
+                    enabled: true,
+                    start: record.start_time,
+                    end: record.end_time
+                };
+            });
+            data.availability = availability;
+        }
+        
         return APISuccess({ ...data, timezone: formatTimezone(data.timezone) });
     } catch(error) {
         return APIError("Server error");
@@ -54,12 +100,29 @@ export async function upsertProfile(userId, data) {
             id: userId,
             full_name: data.full_name ?? null,
             display_name: data.display_name ?? null,
-            avatar_url: data.avatar_url ?? null,
+            // Write to `avatar_url` on profiles table for compatibility. The UI will
+            // continue to read logo_url or avatar_url as available.
+            avatar_url: data.logo_url ?? data.avatar_url ?? null,
             phone: data.phone ?? null,
             bio: data.bio ?? null,
-            timezone: data.timezone ?? 'America/Los_Angeles',
+            timezone: normalizeTimezone(data.timezone) ?? 'America/Los_Angeles',
             updated_at: new Date().toISOString(),
         };
+
+        // Profiles table may not accept nested objects directly. If default_location
+        // was provided as an object (city/state), stringify it so it can be stored
+        // in a JSON column, otherwise omit to avoid 400 errors.
+        if (data.default_location && typeof data.default_location === 'object') {
+            try {
+                payload.default_location = JSON.stringify(data.default_location);
+            } catch (e) {
+                // fallback: don't include the field
+                console.warn('Failed to stringify default_location, omitting:', e);
+            }
+        }
+
+        // Debug: log payload being sent to Supabase for troubleshooting 400 errors
+        console.log('upsertProfile payload:', payload);
 
         const { data: upserted, error } = await supabase
             .from('profiles')
@@ -67,7 +130,93 @@ export async function upsertProfile(userId, data) {
             .select()
             .single();
 
-        if (error) return APIError(error.message);
+        if (error) {
+            console.error('Supabase upsert error:', {
+                message: error.message,
+                details: error.details,
+                hint: error.hint,
+                code: error.code,
+                context: error, // full error object
+            });
+            const detailed = `${error.message || 'Upsert failed'}${error.details ? ' | details: ' + error.details : ''}${error.hint ? ' | hint: ' + error.hint : ''}${error.code ? ' | code: ' + error.code : ''}`;
+            return APIError(detailed);
+        }
+
+        // Save availability directly to the table (no RPC issues)
+        if (data.availability && typeof data.availability === 'object') {
+            try {
+                console.log('Saving availability data:', {
+                    userId,
+                    availability: data.availability,
+                    timezone: data.timezone ?? 'UTC'
+                });
+                
+                // Step 1: Delete existing availability for this user
+                const { error: deleteError } = await supabase
+                    .from('volunteer_availability')
+                    .delete()
+                    .eq('user_id', userId);
+                
+                if (deleteError) {
+                    console.error('Failed to delete old availability:', deleteError);
+                    return APIError(`Failed to clear old availability: ${deleteError.message}`);
+                }
+                
+                // Step 2: Prepare new records
+                const availabilityRecords = [];
+                const dayMap = {
+                    'Sun': 'Sun',
+                    'Mon': 'Mon', 
+                    'Tue': 'Tue',
+                    'Wed': 'Wed',
+                    'Thu': 'Thu',
+                    'Fri': 'Fri',
+                    'Sat': 'Sat'
+                };
+                
+                for (const [day, config] of Object.entries(data.availability)) {
+                    if (config.enabled && config.start && config.end && dayMap[day]) {
+                        availabilityRecords.push({
+                            user_id: userId,
+                            day: dayMap[day],
+                            start_time: config.start,
+                            end_time: config.end,
+                            timezone: normalizeTimezone(data.timezone) ?? 'UTC'
+                        });
+                    }
+                }
+                
+                // Step 3: Insert new records (only if there are any)
+                if (availabilityRecords.length > 0) {
+                    console.log('Attempting to insert records:', availabilityRecords);
+                    
+                    const { data: insertData, error: insertError } = await supabase
+                        .from('volunteer_availability')
+                        .insert(availabilityRecords)
+                        .select();
+                    
+                    if (insertError) {
+                        console.error('Failed to insert availability:', {
+                            error: insertError,
+                            message: insertError.message,
+                            details: insertError.details,
+                            hint: insertError.hint,
+                            code: insertError.code,
+                            records: availabilityRecords
+                        });
+                        return APIError(`Failed to save availability: ${insertError.message}`);
+                    }
+                    
+                    console.log(`Successfully saved ${availabilityRecords.length} availability slots:`, insertData);
+                } else {
+                    console.log('No enabled availability to save');
+                }
+            } catch (e) {
+                console.error('Availability save exception:', e);
+                return APIError(`Failed to save availability: ${e.message}`);
+            }
+        }
+
         return APISuccess(upserted);
     } catch (error) {
         return APIError('Server error');
