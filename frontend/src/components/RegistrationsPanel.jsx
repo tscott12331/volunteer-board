@@ -208,6 +208,8 @@ export default function RegistrationsPanel({
     const filteredEvents = useMemo(() => {
         const now = new Date();
         const arr = (events || []).filter(e => {
+            // Filter out cancelled registrations (same as DiscoverPanel and OrgPage)
+            if (e.status === 'cancelled' || e.registration_status === 'cancelled') return false;
             if (searchQuery && !e.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
             const d = new Date(e.start_at);
             if (viewFilter === 'upcoming' && d < now) return false;
