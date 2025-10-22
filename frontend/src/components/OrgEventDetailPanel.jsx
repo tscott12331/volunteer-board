@@ -102,7 +102,7 @@ export default function OrgEventDetailPanel({ organization, event, mode = 'view'
     const newStatus = event.status === 'published' ? 'draft' : 'published';
     const res = await updateEventStatus(event.id, newStatus);
     if (!res.success) {
-      alert('Failed to update status: ' + res.message);
+      alert('Failed to update status: ' + (res.error || 'Unknown error'));
       return;
     }
     onSaved && onSaved(event.id);
@@ -113,7 +113,7 @@ export default function OrgEventDetailPanel({ organization, event, mode = 'view'
     if (!confirm('Are you sure you want to delete this event? This cannot be undone.')) return;
     const res = await deleteEvent(event.id);
     if (!res.success) {
-      alert('Failed to delete event: ' + res.message);
+      alert('Failed to delete event: ' + (res.error || 'Unknown error'));
       return;
     }
     onDeleted && onDeleted();
@@ -125,7 +125,7 @@ export default function OrgEventDetailPanel({ organization, event, mode = 'view'
     // Fetch all registrants (handle both array and {rows: []} shapes)
     const res = await fetchEventRegistrations(event.id, { status: null, limit: 10000, offset: 0 });
     if (!res.success) {
-      alert('Failed to fetch registrations: ' + res.message);
+      alert('Failed to fetch registrations: ' + (res.error || 'Unknown error'));
       return;
     }
     const rows = Array.isArray(res.data?.rows) ? res.data.rows : (Array.isArray(res.data) ? res.data : []);
@@ -222,7 +222,7 @@ export default function OrgEventDetailPanel({ organization, event, mode = 'view'
       : await updateEvent(event.id, payload);
 
     if (!res.success) {
-      setError(res.message || 'Failed to save');
+      setError(res.error || 'Failed to save');
       setSaving(false);
       return;
     }

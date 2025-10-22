@@ -58,7 +58,7 @@ export default function CheckInModal({ event, onClose, onCheckInComplete }) {
             await loadRegistrations();
             setChanged(true);
         } else {
-            alert('Failed to update check-in status: ' + result.message);
+            alert('Failed to update check-in status: ' + (result.error || 'Unknown error'));
         }
         setUpdating(false);
     };

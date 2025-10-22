@@ -1,7 +1,8 @@
 import { supabase } from './supabaseClient';
 
 // Fetch notifications for a user, paginated
-export async function fetchNotifications(userId, { limit = 20, offset = 0, type = null } = {}) {
+// Options: { limit, offset, type, is_read }
+export async function fetchNotifications(userId, { limit = 20, offset = 0, type = null, is_read = undefined } = {}) {
   let query = supabase
     .from('notifications')
     .select('*')
@@ -10,6 +11,9 @@ export async function fetchNotifications(userId, { limit = 20, offset = 0, type 
     .range(offset, offset + limit - 1);
   if (type) {
     query = query.contains('payload', { type });
+  }
+  if (typeof is_read === 'boolean') {
+    query = query.eq('is_read', is_read);
   }
   const { data, error } = await query;
   if (error) throw error;
@@ -61,4 +65,40 @@ export async function countUnreadNotifications(userId) {
     .eq('is_read', false);
   if (error) throw error;
   return count;
+}
+
+// Subscribe to realtime changes for a user's notifications
+// Returns an unsubscribe function
+export function subscribeToNotifications(userId, { onInsert, onUpdate, onDelete } = {}) {
+  if (!userId) return () => {};
+  const channel = supabase.channel(`notif-user-${userId}`)
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'notifications',
+      filter: `user_id=eq.${userId}`,
+    }, (payload) => {
+      onInsert?.(payload.new);
+    })
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'notifications',
+      filter: `user_id=eq.${userId}`,
+    }, (payload) => {
+      onUpdate?.(payload.new, payload.old);
+    })
+    .on('postgres_changes', {
+      event: 'DELETE',
+      schema: 'public',
+      table: 'notifications',
+      filter: `user_id=eq.${userId}`,
+    }, (payload) => {
+      onDelete?.(payload.old);
+    })
+    .subscribe();
+
+  return () => {
+    try { supabase.removeChannel(channel); } catch {}
+  };
 }

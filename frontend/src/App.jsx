@@ -8,6 +8,8 @@ import VolunteerSetup from './components/VolunteerSetup'
 import UserCredentialForm from './components/UserCredentialForm';
 import Navbar from './components/Navbar';
 import ProfilePage from './components/ProfilePage';
+import EventDetailPage from './components/EventDetailPage';
+import NotificationsPage from './components/NotificationsPage';
 import { fetchProfile } from './util/api/profile';
 
 import { supabase } from './util/api/supabaseClient';
@@ -120,6 +122,8 @@ function App() {
                     <Route path="/volunteer-setup" element={<VolunteerSetup />} />
                     <Route path="/org-dashboard" element={<OrganizationDashboard user={session?.user} />} />
                     <Route path="/profile/:userId" element={<ProfilePage />} />
+                    <Route path="/event/:eventId" element={<EventDetailPage user={session?.user} />} />
+                    <Route path="/notifications" element={<NotificationsPage user={session?.user} />} />
                     <Route path="/signup" element={<UserCredentialForm isSignin={false} />} />
                     <Route path="/signin" element={<UserCredentialForm isSignin={true} />} />
                 </Routes>

@@ -3,6 +3,7 @@ import { supabase } from "../util/api/supabaseClient";
 import { useState, useEffect } from "react";
 import Notifications from './Notifications';
 import { useRef } from 'react';
+import { countUnreadNotifications, subscribeToNotifications } from '../util/api/notifications';
 
 /*
     * Dynamically displays necessary nav links
@@ -21,6 +22,7 @@ export default function Navbar({
     const [hasOrganization, setHasOrganization] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
     const [showProfileMenu, setShowProfileMenu] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
     const profileMenuRef = useRef();
     const loggedIn = !!user;
     const currentView = location.pathname === '/org-dashboard' ? 'organization' : 'volunteer';
@@ -52,6 +54,39 @@ export default function Navbar({
 
         checkUserProfile();
     }, [user]);
+
+    // Load unread count and subscribe to changes
+    useEffect(() => {
+        if (!user?.id) return;
+        let unsub = null;
+        let mounted = true;
+
+        // initial load
+        countUnreadNotifications(user.id)
+            .then(c => { if (mounted) setUnreadCount(c || 0); })
+            .catch(() => {});
+
+        // subscribe to realtime changes
+        unsub = subscribeToNotifications(user.id, {
+            onInsert: (n) => {
+                // increase if the new notification is unread (default false means unread)
+                if (!n.is_read) setUnreadCount(c => (c || 0) + 1);
+            },
+            onUpdate: (n, old) => {
+                // adjust count if read state toggled
+                if (old?.is_read && !n.is_read) setUnreadCount(c => (c || 0) + 1);
+                if (!old?.is_read && n.is_read) setUnreadCount(c => Math.max(0, (c || 0) - 1));
+            },
+            onDelete: (old) => {
+                if (!old?.is_read) setUnreadCount(c => Math.max(0, (c || 0) - 1));
+            }
+        });
+
+        return () => {
+            mounted = false;
+            if (unsub) unsub();
+        };
+    }, [user?.id]);
 
     // signs user out 
     const handleSignout = async () => {
@@ -123,7 +158,15 @@ export default function Navbar({
                             aria-label="Toggle notifications"
                         >
                             <i className="fa-solid fa-bell" />
-                            {/* TODO: Add unread badge here if needed */}
+                            {unreadCount > 0 && (
+                                <span
+                                    className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                                    style={{ fontSize: '0.65rem' }}
+                                >
+                                    {unreadCount > 99 ? '99+' : unreadCount}
+                                    <span className="visually-hidden">unread notifications</span>
+                                </span>
+                            )}
                         </button>
                     )}
                     {loggedIn ? (
