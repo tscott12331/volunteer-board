@@ -7,6 +7,12 @@ Our mission is to **bridge the gap between volunteers and organizations** - empo
 
 ---
 
+## Watch our Demo Video
+
+[![Watch the video](https://img.youtube.com/vi/uQXn0vb0Ems/hqdefault.jpg)](https://www.youtube.com/embed/uQXn0vb0Ems)
+
+---
+
 ## 💡 Inspiration
 
 Many people want to volunteer but struggle to find opportunities that fit their schedule or interests.  
