@@ -31,17 +31,20 @@ export default function OrgPage() {
         // not implemented
         const res = await followOrganization(id);
         if(res.success) {
-            setNewlyFollowed(true);
-            setNewlyUnfollowed(false);
+            setNewlyFollowed(!org.is_following);
         }
+        setNewlyUnfollowed(false);
     }
 
     const handleUnfollow = async (id) => {
         // not implemented
         const res = await unfollowOrganization(id);
         if(res.success) {
+            if(org.is_following) {
+                setNewlyUnfollowed(true);
+            }
+
             setNewlyFollowed(false);
-            setNewlyUnfollowed(true);
         }
     }
 
@@ -79,7 +82,7 @@ export default function OrgPage() {
                             <h2 className={styles.orgName}>{org.name}</h2>
                             {sessionUserId &&
                             (
-                            (org.is_following || newlyFollowed) && !newlyUnfollowed ?
+                            (org.is_following || newlyFollowed) && !newlyUnfollowed?
                             <button 
                                 className="btn btn-danger"
                                 onClick={() => handleUnfollow(org.id)}
@@ -103,7 +106,9 @@ export default function OrgPage() {
                             <div className={styles.infoGrid}>
                                 <div className={styles.infoItem}>
                                     <div className={styles.infoLabel}>Followers</div>
-                                    <div className={styles.infoValue}>{org.follower_count}</div>
+                                    <div className={styles.infoValue}>{
+                                        org.follower_count + (newlyFollowed ? 1 : newlyUnfollowed ? -1 : 0)
+                                    }</div>
                                 </div>
                                 <div className={styles.infoItem}>
                                     <div className={styles.infoLabel}>Website</div>
