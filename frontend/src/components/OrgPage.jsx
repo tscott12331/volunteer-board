@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import styles from './OrgPage.module.css';
 import { fetchOrganizationBySlug, fetchOrganizationEventsBySlug, followOrganization, unfollowOrganization } from '../util/api/organizations';
-import { useParams } from 'react-router';
+import { Link, useParams } from 'react-router';
 import { supabase } from '../util/api/supabaseClient';
 
 export default function OrgPage() {
@@ -133,10 +133,10 @@ export default function OrgPage() {
                             <div className={"row mt-4 " + styles.eventsWrappers}>
                                 <div className={styles.eventList}>
                                     {orgEvents.map(e =>
-                                    <button
+                                    <Link
                                         key={e.id}
-                                        type="button"
-                                        className={styles.eventListItem}
+                                        to={`/event/${e.id}`}
+                                        className={`${styles.eventListItem} text-decoration-none`}
                                     >
                                         <div className="d-flex w-100 justify-content-between align-items-start mb-2">
                                             <div className="d-flex align-items-center gap-2">
@@ -154,7 +154,7 @@ export default function OrgPage() {
                                                 <small className="text-muted">{e.location?.address || `${e.location?.street}, ${e.location?.city} ${e.location?.state}, ${e.location?.zip}`}</small>
                                             </div>
                                         )}
-                                    </button>
+                                    </Link>
                                     )}
                                 </div>
                             </div>
