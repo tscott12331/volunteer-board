@@ -101,7 +101,12 @@ export default function Notifications({ user, onClose }) {
   const handleNavigate = (n) => {
     // Close overlay first, then navigate immediately to avoid any visual blocking
     onClose();
-    navigate(`/event/${n.event_id}`);
+    
+    // Only navigate to event page if event_id exists (some notifications like onboarding don't have events)
+    if (n.event_id) {
+      navigate(`/event/${n.event_id}`);
+    }
+    
     // Fire-and-forget mark as read so navigation isn't blocked
     if (!n.is_read) {
       markNotificationRead(n.id).catch(() => {});
@@ -199,11 +204,13 @@ export default function Notifications({ user, onClose }) {
         <div className={styles.notificationsList}>
           {notifications.map(n => {
             const iconData = getIcon(n);
+            const hasEvent = !!n.event_id;
             return (
               <div 
                 className={`${styles.item} ${!n.is_read ? styles.unread : ''}`} 
                 key={n.id}
                 onClick={() => handleNavigate(n)}
+                style={{ cursor: hasEvent ? 'pointer' : 'default' }}
               >
                 <div className={styles.iconWrapper} style={{ backgroundColor: iconData.bg }}>
                   <i className={`bi ${iconData.icon}`} style={{ color: iconData.color }}></i>

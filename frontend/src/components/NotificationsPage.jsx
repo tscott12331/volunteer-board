@@ -88,7 +88,11 @@ export default function NotificationsPage({ user }) {
                 x.id === n.id ? { ...x, is_read: true, read_at: new Date().toISOString() } : x
             ));
         }
-        navigate(`/event/${n.event_id}`);
+        
+        // Only navigate to event page if event_id exists (some notifications like onboarding don't have events)
+        if (n.event_id) {
+            navigate(`/event/${n.event_id}`);
+        }
     };
 
     // Toggle read/unread on a single notification
@@ -355,6 +359,7 @@ export default function NotificationsPage({ user }) {
                             {filteredNotifications.map((n) => {
                                 const iconData = getIcon(n);
                                 const isSelected = selectedIds.has(n.id);
+                                const hasEvent = !!n.event_id;
                                 
                                 return (
                                     <li 
@@ -381,7 +386,7 @@ export default function NotificationsPage({ user }) {
                                             {/* Content */}
                                             <div 
                                                 className="flex-grow-1" 
-                                                style={{ cursor: 'pointer' }}
+                                                style={{ cursor: hasEvent ? 'pointer' : 'default' }}
                                                 onClick={() => handleNavigate(n)}
                                             >
                                                 <h6 className={`mb-1 text-white ${!n.is_read ? 'fw-bold' : ''}`}>
