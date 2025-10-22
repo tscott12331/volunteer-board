@@ -14,6 +14,7 @@ import { fetchProfile } from './util/api/profile';
 
 import { supabase } from './util/api/supabaseClient';
 import { useEffect, useState } from 'react';
+import OrgPage from './components/OrgPage';
 
 function App() {
     // holds the supabase auth session
@@ -119,6 +120,7 @@ function App() {
                 <Routes>
                     <Route path="/" element={<VolunteerDashboard user={session?.user} />} />
                     <Route path="/org-setup" element={<OrgSetup user={session?.user} />} />
+                    <Route path="/org/:slug" element={<OrgPage />}/>
                     <Route path="/volunteer-setup" element={<VolunteerSetup />} />
                     <Route path="/org-dashboard" element={<OrganizationDashboard user={session?.user} />} />
                     <Route path="/profile/:userId" element={<ProfilePage />} />
