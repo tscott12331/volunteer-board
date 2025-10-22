@@ -27,6 +27,26 @@ export async function fetchProfile(userId) {
                     data = { ...data, onboarding_complete: basic.onboarding_complete, timezone: basic.timezone ?? data.timezone };
                 }
             }
+            
+            // Fetch availability separately and merge
+            const { data: availData, error: availError } = await supabase
+                .from('volunteer_availability')
+                .select('day, start_time, end_time, timezone')
+                .eq('user_id', userId);
+            
+            if (!availError && availData) {
+                // Convert array to object keyed by day
+                const availability = {};
+                availData.forEach(record => {
+                    availability[record.day] = {
+                        enabled: true,
+                        start: record.start_time,
+                        end: record.end_time
+                    };
+                });
+                data.availability = availability;
+            }
+            
             return APISuccess({
                 ...data,
                 timezone: formatTimezone(data.timezone),
@@ -41,6 +61,25 @@ export async function fetchProfile(userId) {
             .maybeSingle();
         if (error) return APIError(error.message);
         if (!data) return APISuccess(null);
+        
+        // Fetch availability for fallback path too
+        const { data: availData, error: availError } = await supabase
+            .from('volunteer_availability')
+            .select('day, start_time, end_time, timezone')
+            .eq('user_id', userId);
+        
+        if (!availError && availData) {
+            const availability = {};
+            availData.forEach(record => {
+                availability[record.day] = {
+                    enabled: true,
+                    start: record.start_time,
+                    end: record.end_time
+                };
+            });
+            data.availability = availability;
+        }
+        
         return APISuccess({ ...data, timezone: formatTimezone(data.timezone) });
     } catch(error) {
         return APIError("Server error");
@@ -69,20 +108,78 @@ export async function upsertProfile(userId, data) {
 
         if (error) return APIError(error.message);
 
-        // Option A: Persist availability via RPC on the backend (preferred)
+        // Save availability directly to the table (no RPC issues)
         if (data.availability && typeof data.availability === 'object') {
             try {
-                const { error: rpcErr } = await supabase.rpc('save_volunteer_availability', {
-                    p_user_id: userId,
-                    p_availability: data.availability,
-                    p_timezone: data.timezone ?? null,
+                console.log('Saving availability data:', {
+                    userId,
+                    availability: data.availability,
+                    timezone: data.timezone ?? 'UTC'
                 });
-                if (rpcErr) {
-                    // Don't block profile save if RPC missing or fails; log for diagnostics
-                    console.warn('save_volunteer_availability RPC error:', rpcErr.message || rpcErr);
+                
+                // Step 1: Delete existing availability for this user
+                const { error: deleteError } = await supabase
+                    .from('volunteer_availability')
+                    .delete()
+                    .eq('user_id', userId);
+                
+                if (deleteError) {
+                    console.error('Failed to delete old availability:', deleteError);
+                    return APIError(`Failed to clear old availability: ${deleteError.message}`);
+                }
+                
+                // Step 2: Prepare new records
+                const availabilityRecords = [];
+                const dayMap = {
+                    'Sun': 'Sun',
+                    'Mon': 'Mon', 
+                    'Tue': 'Tue',
+                    'Wed': 'Wed',
+                    'Thu': 'Thu',
+                    'Fri': 'Fri',
+                    'Sat': 'Sat'
+                };
+                
+                for (const [day, config] of Object.entries(data.availability)) {
+                    if (config.enabled && config.start && config.end && dayMap[day]) {
+                        availabilityRecords.push({
+                            user_id: userId,
+                            day: dayMap[day],
+                            start_time: config.start,
+                            end_time: config.end,
+                            timezone: data.timezone ?? 'UTC'
+                        });
+                    }
+                }
+                
+                // Step 3: Insert new records (only if there are any)
+                if (availabilityRecords.length > 0) {
+                    console.log('Attempting to insert records:', availabilityRecords);
+                    
+                    const { data: insertData, error: insertError } = await supabase
+                        .from('volunteer_availability')
+                        .insert(availabilityRecords)
+                        .select();
+                    
+                    if (insertError) {
+                        console.error('Failed to insert availability:', {
+                            error: insertError,
+                            message: insertError.message,
+                            details: insertError.details,
+                            hint: insertError.hint,
+                            code: insertError.code,
+                            records: availabilityRecords
+                        });
+                        return APIError(`Failed to save availability: ${insertError.message}`);
+                    }
+                    
+                    console.log(`Successfully saved ${availabilityRecords.length} availability slots:`, insertData);
+                } else {
+                    console.log('No enabled availability to save');
                 }
             } catch (e) {
-                console.warn('save_volunteer_availability RPC exception:', e);
+                console.error('Availability save exception:', e);
+                return APIError(`Failed to save availability: ${e.message}`);
             }
         }
 
