@@ -77,6 +77,10 @@
     color: #e5e7eb;
 }
 
+.orgName:hover {
+    text-decoration: underline !important;
+}
+
 /* Grid View Styles */
 .eventCard {
     background: rgba(255, 255, 255, 0.02);
@@ -95,6 +99,10 @@
     transform: translateY(-4px);
     box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
     border-color: rgba(102, 126, 234, 0.3);
+}
+
+.eventCardOrgName:hover {
+    text-decoration: underline !important;
 }
 
 /* Registered Event Styling */
