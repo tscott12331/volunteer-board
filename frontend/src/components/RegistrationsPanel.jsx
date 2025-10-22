@@ -37,11 +37,15 @@ export default function RegistrationsPanel({
         setLoading(true);
         fetchRegisteredEvents(user.id).then(async (res) => {
             if(res.success) {
+                // Filter out cancelled registrations
+                const activeRegistrations = (res.data || []).filter(event => 
+                    event.registration_status !== 'cancelled'
+                );
                 // set events on fetch success
-                setEvents(res.data);
+                setEvents(activeRegistrations);
                 
                 // Fetch organization data for all events
-                const orgIds = [...new Set(res.data.map(event => event.organization_id).filter(Boolean))];
+                const orgIds = [...new Set(activeRegistrations.map(event => event.organization_id).filter(Boolean))];
                 const orgMap = {};
                 
                 await Promise.all(
@@ -87,14 +91,23 @@ export default function RegistrationsPanel({
     const handleUnregister = async (eventId) => {
         if (!user?.id) return;
         
+        if (!confirm('Are you sure you want to unregister from this event?')) {
+            return;
+        }
+        
         try {
-            await unregisterFromEvent(eventId, user.id);
-            await loadRegistrations();
-            if (selectedEvent?.id === eventId) {
-                setSelectedEvent(undefined);
+            const res = await unregisterFromEvent(eventId, user.id);
+            
+            if (res.success) {
+                await loadRegistrations();
+                if (selectedEvent?.id === eventId) {
+                    setSelectedEvent(undefined);
+                }
+                // Notify other components
+                window.dispatchEvent(new CustomEvent('registration:changed', { detail: { eventId, action: 'unregistered' } }));
+            } else {
+                alert(res.error || 'Failed to unregister from event');
             }
-            // Notify other components
-            window.dispatchEvent(new CustomEvent('registration:changed', { detail: { eventId, action: 'unregistered' } }));
         } catch (error) {
             console.error('Error unregistering:', error);
             alert('Failed to unregister from event');

@@ -82,21 +82,49 @@ export async function registerForEvent(eventId) {
 export async function unregisterFromEvent(eventId, userId) {
     if (!eventId || !userId) return APIError("Event ID or User ID is undefined");
     try {
-        // Try direct delete; if RLS blocks this, fall back to RPC if available
-        const { error } = await supabase
+        // First, get the registration_id for this event and user
+        const { data: registration, error: fetchError } = await supabase
             .from('event_registrations')
-            .delete()
+            .select('id, status')
             .eq('event_id', eventId)
-            .eq('user_id', userId);
+            .eq('user_id', userId)
+            .maybeSingle();
 
-        if (error) {
-            // Optional: attempt RPC 'leave_event' if your DB function exists
-            const rpc = await supabase.rpc('leave_event', { p_event_id: eventId });
-            if (rpc.error) return APIError(error.message || rpc.error.message);
-            return APISuccess(rpc.data ?? true);
+        if (fetchError) return APIError(fetchError.message);
+        if (!registration) return APIError("Registration not found");
+        
+        // If already cancelled, return success
+        if (registration.status === 'cancelled') {
+            return APISuccess(true);
         }
-        return APISuccess(true);
+
+        // Try calling the RPC function first
+        const { data: rpcData, error: rpcError } = await supabase.rpc('update_registration_status', {
+            registration_id: registration.id,
+            new_status: 'cancelled',
+            acting_user: userId
+        });
+
+        // If RPC fails due to RLS on notifications, fall back to direct update
+        if (rpcError) {
+            console.warn('RPC update_registration_status failed, falling back to direct update:', rpcError.message);
+            
+            // Directly update the status field
+            const { error: updateError } = await supabase
+                .from('event_registrations')
+                .update({ 
+                    status: 'cancelled',
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', registration.id);
+
+            if (updateError) return APIError(updateError.message);
+            return APISuccess(true);
+        }
+
+        return APISuccess(rpcData ?? true);
     } catch (error) {
+        console.error('Unregister error:', error);
         return APIError("Server error");
     }
 }

@@ -102,7 +102,15 @@ export default function OrgPage() {
 
         fetchOrganizationEventsBySlug(slug).then(res => {
             if(res.success) {
-                setOrgEvents(res.data);
+                // Filter out cancelled registrations when displaying events
+                const filteredEvents = (res.data || []).map(event => {
+                    // If registration is cancelled, treat as not registered
+                    if (event.registration_status === 'cancelled') {
+                        return { ...event, is_registered: false, registration_status: null };
+                    }
+                    return event;
+                });
+                setOrgEvents(filteredEvents);
             }
         })
     }, []);

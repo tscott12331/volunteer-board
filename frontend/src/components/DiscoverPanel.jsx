@@ -92,11 +92,18 @@ export default function DiscoverPanel({ user }) {
             if(res.success) {
                 // debug: log raw events to confirm `location` is returned
                 console.log('DiscoverPanel fetched events:', res.data);
-                // set events on successful fetch
-                setEvents(res.data);
+                // Filter out cancelled registrations and set events
+                const filteredEvents = (res.data || []).map(event => {
+                    // If registration is cancelled, treat as not registered
+                    if (event.registration_status === 'cancelled') {
+                        return { ...event, is_registered: false };
+                    }
+                    return event;
+                });
+                setEvents(filteredEvents);
                 
                 // Fetch organization data for all events
-                res.data.forEach(event => {
+                filteredEvents.forEach(event => {
                     if (event.org_id && !orgDataMap[event.org_id]) {
                         fetchOrganization(event.org_id).then(orgRes => {
                             if (orgRes.success) {
