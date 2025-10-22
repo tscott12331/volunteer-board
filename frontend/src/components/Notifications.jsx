@@ -7,8 +7,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   fetchNotifications,
   markNotificationRead,
-  markNotificationUnread,
-  deleteNotification,
   markAllNotificationsRead,
   subscribeToNotifications
 } from '../util/api/notifications';
@@ -24,11 +22,11 @@ export default function Notifications({ user, onClose }) {
   const overlayRef = useRef();
   const PAGE_SIZE = 20;
 
-  // Initial load
+  // Initial load - unread only
   useEffect(() => {
     let mounted = true;
     setLoading(true);
-    fetchNotifications(user.id, { limit: PAGE_SIZE, offset: 0 })
+    fetchNotifications(user.id, { limit: PAGE_SIZE, offset: 0, is_read: false })
       .then(data => {
         if (mounted) {
           setNotifications(data);
@@ -40,16 +38,24 @@ export default function Notifications({ user, onClose }) {
     return () => { mounted = false; };
   }, [user.id]);
 
-  // Realtime subscription: keep list live-updated while open
+  // Realtime subscription: keep list of UNREAD items live-updated while open
   useEffect(() => {
     if (!user?.id) return;
     const unsub = subscribeToNotifications(user.id, {
       onInsert: (n) => {
-        // Prepend new notification
-        setNotifications(prev => [n, ...prev]);
+        // Only show unread in the menu overlay
+        if (!n.is_read) {
+          setNotifications(prev => [n, ...prev]);
+        }
       },
       onUpdate: (n) => {
-        setNotifications(prev => prev.map(x => x.id === n.id ? n : x));
+        setNotifications(prev => {
+          // If it became read, remove from list
+          if (n.is_read) return prev.filter(x => x.id !== n.id);
+          // If still unread, update in place or prepend if not present
+          const exists = prev.some(x => x.id === n.id);
+          return exists ? prev.map(x => (x.id === n.id ? n : x)) : [n, ...prev];
+        });
       },
       onDelete: (old) => {
         setNotifications(prev => prev.filter(x => x.id !== old.id));
@@ -64,7 +70,7 @@ export default function Notifications({ user, onClose }) {
     if (!hasMore || loadingMore || loading) return;
     if (el.scrollHeight - el.scrollTop - el.clientHeight < 64) {
       setLoadingMore(true);
-      fetchNotifications(user.id, { limit: PAGE_SIZE, offset: notifications.length })
+      fetchNotifications(user.id, { limit: PAGE_SIZE, offset: notifications.length, is_read: false })
         .then(data => {
           setNotifications(prev => [...prev, ...data]);
           setHasMore(data.length === PAGE_SIZE);
@@ -73,36 +79,32 @@ export default function Notifications({ user, onClose }) {
     }
   }, [user.id, notifications.length, hasMore, loadingMore, loading]);
 
-  // Mark as read/unread
-  const handleToggleRead = async (n) => {
-    if (n.is_read) {
-      await markNotificationUnread(n.id);
-      setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, is_read: false, read_at: null } : x));
-    } else {
-      await markNotificationRead(n.id);
-      setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, is_read: true, read_at: new Date().toISOString() } : x));
-    }
-  };
-
-  // Delete
-  const handleDelete = async (id) => {
-    await deleteNotification(id);
-    setNotifications(prev => prev.filter(x => x.id !== id));
+  // Mark as read (no toggle - just mark read)
+  const handleMarkRead = async (n) => {
+    if (n.is_read) return;
+    await markNotificationRead(n.id);
+    // Since this overlay shows only unread, remove the item locally
+    setNotifications(prev => prev.filter(x => x.id !== n.id));
   };
 
   // Mark all as read
   const handleMarkAll = async () => {
     setMarkingAll(true);
     await markAllNotificationsRead(user.id);
-    setNotifications(prev => prev.map(x => ({ ...x, is_read: true, read_at: new Date().toISOString() })));
+    // Clear the unread list since all are now read
+    setNotifications([]);
+    setHasMore(false);
     setMarkingAll(false);
   };
 
   // Navigate to event
   const handleNavigate = async (n) => {
-    if (!n.is_read) await markNotificationRead(n.id);
+    onClose(); // Close overlay immediately for smooth transition
+    if (!n.is_read) {
+      await markNotificationRead(n.id);
+      // Do not update local state; overlay is closing and item is removed by realtime/badge
+    }
     navigate(`/event/${n.event_id}`);
-    onClose();
   };
 
   // Keyboard: ESC to close
@@ -110,6 +112,17 @@ export default function Notifications({ user, onClose }) {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  // Click outside to close
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (overlayRef.current && !overlayRef.current.contains(e.target)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose]);
 
   // Scroll handler
@@ -122,10 +135,26 @@ export default function Notifications({ user, onClose }) {
   // Icon by type
   const getIcon = (n) => {
     const type = n.payload?.type || n.type || '';
-    if (type === 'opportunity') return <i className="bi bi-calendar2-event text-primary me-2" />;
-    if (type === 'registration') return <i className="bi bi-person-plus text-success me-2" />;
-    if (type === 'reminder') return <i className="bi bi-bell text-warning me-2" />;
-    return <i className="bi bi-info-circle text-secondary me-2" />;
+    if (type === 'opportunity') return { icon: 'bi-calendar2-event', color: '#667eea', bg: 'rgba(102, 126, 234, 0.15)' };
+    if (type === 'registration') return { icon: 'bi-person-plus', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)' };
+    if (type === 'reminder') return { icon: 'bi-bell', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)' };
+    return { icon: 'bi-info-circle', color: '#6c757d', bg: 'rgba(108, 117, 125, 0.15)' };
+  };
+
+  // Format relative time
+  const getRelativeTime = (dateStr) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   return (
@@ -133,10 +162,26 @@ export default function Notifications({ user, onClose }) {
       <div className={styles.backdrop} onClick={onClose} />
       <div ref={overlayRef} className={styles.overlay} role="dialog" aria-label="Notifications" tabIndex={-1}>
         <div className={styles.header}>
-          <h5 className="m-0">Notifications</h5>
+          <div>
+            <h5 className="m-0 fw-bold">Notifications</h5>
+            <small className="text-muted">Stay updated with new opportunities</small>
+          </div>
           <div className="d-flex gap-2 align-items-center">
-            <button className="btn btn-sm btn-outline-secondary" onClick={handleMarkAll} disabled={markingAll}>Mark all as read</button>
-            <button className="btn btn-sm btn-outline-secondary" onClick={onClose}>Close</button>
+            <button 
+              className="btn btn-sm btn-link text-decoration-none p-1" 
+              onClick={() => { navigate('/notifications'); onClose(); }}
+              title="View all notifications"
+            >
+              View All
+            </button>
+            <button 
+              className="btn btn-sm btn-link text-decoration-none p-1" 
+              onClick={handleMarkAll} 
+              disabled={markingAll}
+              title="Mark all as read"
+            >
+              {markingAll ? 'Marking...' : 'Mark all read'}
+            </button>
           </div>
         </div>
 
@@ -150,27 +195,32 @@ export default function Notifications({ user, onClose }) {
           </div>
         )}
 
-        <div>
-          {notifications.map(n => (
-            <div className={`${styles.item} d-flex align-items-start justify-content-between ${!n.is_read ? styles.unread : ''}`} key={n.id}>
-              <div className="flex-grow-1" style={{ cursor: 'pointer' }} onClick={() => handleNavigate(n)}>
-                <div className="d-flex align-items-center">
-                  {getIcon(n)}
-                  <span className={n.is_read ? '' : 'fw-bold'}>{n.title}</span>
+        <div className={styles.notificationsList}>
+          {notifications.map(n => {
+            const iconData = getIcon(n);
+            return (
+              <div 
+                className={`${styles.item} ${!n.is_read ? styles.unread : ''}`} 
+                key={n.id}
+                onClick={() => handleNavigate(n)}
+                onMouseEnter={() => !n.is_read && handleMarkRead(n)}
+              >
+                <div className={styles.iconWrapper} style={{ backgroundColor: iconData.bg }}>
+                  <i className={`bi ${iconData.icon}`} style={{ color: iconData.color }}></i>
                 </div>
-                <div className={styles.muted} style={{ fontSize: '0.875rem' }}>{n.body}</div>
-                <div className={styles.muted} style={{ fontSize: '0.75rem' }}>{new Date(n.created_at).toLocaleString()}</div>
+                <div className={styles.content}>
+                  <div className={styles.titleRow}>
+                    <span className={`${styles.title} ${!n.is_read ? styles.titleUnread : ''}`}>
+                      {n.title}
+                    </span>
+                    <span className={styles.time}>{getRelativeTime(n.created_at)}</span>
+                  </div>
+                  <p className={styles.body}>{n.body}</p>
+                  {!n.is_read && <div className={styles.unreadDot}></div>}
+                </div>
               </div>
-              <div className="d-flex flex-column align-items-end ms-2 gap-1">
-                <button className="btn btn-sm btn-link px-1" title={n.is_read ? 'Mark as unread' : 'Mark as read'} onClick={e => { e.stopPropagation(); handleToggleRead(n); }}>
-                  {n.is_read ? <i className="bi bi-envelope-open" /> : <i className="bi bi-envelope-fill text-primary" />}
-                </button>
-                <button className="btn btn-sm btn-link px-1 text-danger" title="Delete" onClick={e => { e.stopPropagation(); handleDelete(n.id); }}>
-                  <i className="bi bi-x-circle" />
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         {hasMore && !loading && (
           <div className="text-center py-2">

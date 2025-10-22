@@ -1,7 +1,8 @@
 import { supabase } from './supabaseClient';
 
 // Fetch notifications for a user, paginated
-export async function fetchNotifications(userId, { limit = 20, offset = 0, type = null } = {}) {
+// Options: { limit, offset, type, is_read }
+export async function fetchNotifications(userId, { limit = 20, offset = 0, type = null, is_read = undefined } = {}) {
   let query = supabase
     .from('notifications')
     .select('*')
@@ -10,6 +11,9 @@ export async function fetchNotifications(userId, { limit = 20, offset = 0, type 
     .range(offset, offset + limit - 1);
   if (type) {
     query = query.contains('payload', { type });
+  }
+  if (typeof is_read === 'boolean') {
+    query = query.eq('is_read', is_read);
   }
   const { data, error } = await query;
   if (error) throw error;
