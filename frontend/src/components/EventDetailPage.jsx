@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../util/api/supabaseClient';
 import { registerForEvent, unregisterFromEvent, fetchOrganization } from '../util/api/events';
+import { DEFAULT_EVENT_IMAGE } from '../util/defaults';
 import { formatDateAtTime } from '../util/date';
 import styles from './EventDetailPage.module.css';
 
@@ -192,7 +193,7 @@ export default function EventDetailPage({ user }) {
                 {event && (
                     <div 
                         className={styles.hero}
-                        style={{ backgroundImage: event.image_url ? `url(${event.image_url})` : 'none' }}
+                        style={{ backgroundImage: `url(${event.image_url || DEFAULT_EVENT_IMAGE})` }}
                         aria-label="Event banner"
                     >
                         <div className={styles.heroOverlay} />
@@ -212,11 +213,11 @@ export default function EventDetailPage({ user }) {
                                     )}
                                     {org && (
                                         <span className={`${styles.chip} ${styles.hostChip}`}>
-                                            {org.logo_url ? (
-                                                <img src={org.logo_url} alt={`${org.name} logo`} className={styles.hostAvatar} />
-                                            ) : (
-                                                <i className="bi bi-building me-1" />
-                                            )}
+                                            {org?.logo_url ? (
+                                                        <img src={org.logo_url} alt={`${org.name} logo`} className={styles.hostAvatar} />
+                                                    ) : (
+                                                        <img src={DEFAULT_EVENT_IMAGE} alt="Organization" className={styles.hostAvatar} />
+                                                    )}
                                             <span className={styles.hostLabel}>{org.name}</span>
                                         </span>
                                     )}

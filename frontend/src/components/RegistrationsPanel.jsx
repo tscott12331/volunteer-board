@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from 'react-router-dom';
 import { fetchRegisteredEvents, fetchOrganization, unregisterFromEvent, fetchEventById } from "../util/api/events";
+import { DEFAULT_EVENT_IMAGE, SMALL_DEFAULT_EVENT_IMAGE, DEFAULT_EVENT_LOGO } from '../util/defaults';
 import { formatDateAtTime } from '../util/date';
 import styles from './RegistrationsPanel.module.css';
 
@@ -337,15 +338,7 @@ export default function RegistrationsPanel({
                                         <div className="d-flex w-100 gap-3 align-items-start">
                                             {/* Thumbnail */}
                                             <div style={{ width: 72, height: 72, flex: '0 0 72px', borderRadius: 8, overflow: 'hidden', background: 'rgba(255,255,255,0.02)' }}>
-                                                {e.image_url ? (
-                                                    <img src={e.image_url} alt={e.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                ) : (org?.logo_url || org?.image_url || org?.logoUrl || org?.imageUrl || org?.image || org?.logo) ? (
-                                                    <img src={org.logo_url || org.image_url || org.logoUrl || org.imageUrl || org.image || org.logo} alt={org?.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                ) : (
-                                                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(102,126,234,0.08)', color: '#667eea', fontWeight: 700 }}>
-                                                        {org?.name?.[0] || e.title?.[0] || '?'}
-                                                    </div>
-                                                )}
+                                                <img src={e.image_url || org?.logo_url || org?.image_url || DEFAULT_EVENT_LOGO || SMALL_DEFAULT_EVENT_IMAGE} alt={e.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                             </div>
 
                                             <div className="flex-grow-1 text-start">
@@ -384,12 +377,8 @@ export default function RegistrationsPanel({
                                     return (
                                     <div className={`${styles.eventInfoCard} card p-3 shadow-sm EventInfo-container ${styles.detailCard} ${styles.stickyDetail}`}>
                                         {/* Event image (reserve space even if none) */}
-                                        <div style={{ width: '100%', maxHeight: 320, height: 200, overflow: 'hidden', borderRadius: 8, background: selectedEvent.image_url ? 'transparent' : 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="mb-3">
-                                            {selectedEvent.image_url ? (
-                                                <img src={selectedEvent.image_url} alt={selectedEvent.title} className="img-fluid" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                            ) : (
-                                                <div style={{ color: '#9ca3af', fontWeight: 700 }}>{(selectedEvent.title || '?')[0]}</div>
-                                            )}
+                                        <div style={{ width: '100%', maxHeight: 320, height: 200, overflow: 'hidden', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="mb-3">
+                                            <img src={selectedEvent.image_url || DEFAULT_EVENT_IMAGE} alt={selectedEvent.title} className="img-fluid" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         </div>
 
                                         {/* Title */}
@@ -402,11 +391,9 @@ export default function RegistrationsPanel({
                                             return (
                                                 <div className="d-flex align-items-center gap-2 mb-2">
                                                     {orgImage ? (
-                                                        <img src={orgImage || selectedOrg?.logoUrl || selectedOrg?.imageUrl || selectedOrg?.image || selectedOrg?.logo} alt={orgName} style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 8 }} />
+                                                        <img src={orgImage || DEFAULT_EVENT_LOGO} alt={orgName} style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 8 }} />
                                                     ) : (
-                                                        <div style={{ width: 48, height: 48, borderRadius: 8, background: 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontWeight: 700 }}>
-                                                            {orgName?.[0] || '?'}
-                                                        </div>
+                                                        <img src={DEFAULT_EVENT_LOGO} alt={orgName} style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 8 }} />
                                                     )}
                                                     <div>
                                                         <div className="text-body-emphasis">

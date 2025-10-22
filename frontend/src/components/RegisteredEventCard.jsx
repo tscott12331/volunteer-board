@@ -1,4 +1,5 @@
 import { formatDateAtTime } from "../util/date";
+import { DEFAULT_EVENT_IMAGE } from '../util/defaults';
 import { useState } from 'react';
 import styles from './RegistrationsPanel.module.css';
 
@@ -59,11 +60,9 @@ export default function RegisteredEventCard({
     if (viewMode === 'grid') {
         return (
             <div className={styles.eventCard} onClick={() => onView?.(event)}>
-                {event.image_url && (
-                    <div className={styles.eventCardImage}>
-                        <img src={event.image_url} alt={event.title} />
-                    </div>
-                )}
+                <div className={styles.eventCardImage}>
+                    <img src={event.image_url || DEFAULT_EVENT_IMAGE} alt={event.title} />
+                </div>
                 <div className={styles.eventCardBody}>
                     {organization && (
                         <div style={{ 

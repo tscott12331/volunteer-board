@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { registerForEvent, fetchOrganization } from '../util/api/events';
+import { DEFAULT_EVENT_IMAGE } from '../util/defaults';
 import { supabase } from '../util/api/supabaseClient';
 import styles from './EventCard.module.css';
 
@@ -134,9 +135,7 @@ export default function EventCard({
                         )}
                     </div>
                 </div>
-                {image_url &&
-                <img src={image_url} className={"text-center card-img-top " + styles.cardImg} alt="Project photos" />
-                }
+                <img src={image_url || DEFAULT_EVENT_IMAGE} className={"text-center card-img-top " + styles.cardImg} alt="Project photos" />
                 <div className="card-body">
                     <p className="mb-1"><span className="text-body-emphasis">Organization:</span> {orgName}</p>
                     <p className="card-text">{description}</p>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchOrganization } from "../util/api/events";
+import { DEFAULT_EVENT_IMAGE } from '../util/defaults';
 import { formatDateAtTime } from "../util/date";
 
 // Modal popup displaying more detailed information about an event
@@ -36,7 +37,7 @@ export default function EventInfoModal({ id, event, isNewlyRegistered, isRegiste
                             <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div className="modal-body">
-                            {event.image_url && <img className="img-thumbnail mb-3" src={event.image_url} />}
+                            <img className="img-thumbnail mb-3" src={event.image_url || DEFAULT_EVENT_IMAGE} />
                             {event.description ? <p>{event.description}</p> : <p>This event has no description</p>}
                             {org && (
                                 <p className="mb-1">

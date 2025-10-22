@@ -3,6 +3,7 @@ import styles from './DiscoverPanel.module.css';
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from 'react-router-dom';
 import { fetchEvents, registerForEvent, fetchOrganization } from "../util/api/events";
+import { DEFAULT_EVENT_IMAGE, SMALL_DEFAULT_EVENT_IMAGE, DEFAULT_EVENT_LOGO } from '../util/defaults';
 import { formatDateAtTime } from '../util/date';
 
 /*
@@ -268,8 +269,8 @@ export default function DiscoverPanel({ user }) {
                     {selectedEvent ? (
                         <div className={"card p-3 shadow-sm " + styles.detailCard}>
                             <div className="d-flex gap-3 align-items-center mb-2">
-                                {selectedOrg?.logo_url || selectedOrg?.image_url ? (
-                                    <img src={selectedOrg.logo_url || selectedOrg.image_url} alt={selectedOrg?.name} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }} />
+                                {selectedOrg ? (
+                                    <img src={selectedOrg.logo_url || selectedOrg.image_url || DEFAULT_EVENT_LOGO} alt={selectedOrg?.name} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }} />
                                 ) : null}
                                 <div className="flex-grow-1">
                                     <Link 
@@ -289,9 +290,6 @@ export default function DiscoverPanel({ user }) {
                                     </div>
                                 </div>
                             </div>
-                            {selectedEvent.image_url && (
-                                <img src={selectedEvent.image_url} alt={selectedEvent.title} className="img-fluid mb-3" style={{ borderRadius: '8px' }} />
-                            )}
                             <p>{selectedEvent.description}</p>
                             <p className="mb-1"><strong>Location:</strong> {typeof selectedEvent.location === 'string' ? selectedEvent.location : (selectedEvent.location?.city || selectedEvent.location?.name || `${selectedEvent.location?.lat}, ${selectedEvent.location?.lon}`)}</p>
                             <p className="mb-1"><strong>Date & time:</strong> {new Date(selectedEvent.start_at).toLocaleString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
@@ -353,11 +351,9 @@ export default function DiscoverPanel({ user }) {
                                     </div>
                                 )}
                                 
-                                {e.image_url && (
-                                    <div className={styles.eventCardImage}>
-                                        <img src={e.image_url} alt={e.title} />
-                                    </div>
-                                )}
+                                <div className={styles.eventCardImage}>
+                                    <img src={e.image_url || SMALL_DEFAULT_EVENT_IMAGE} alt={e.title} />
+                                </div>
                                 <div className={styles.eventCardBody}>
                                     {/* Organization */}
                                     <div className="d-flex align-items-center gap-2 mb-2">
