@@ -80,6 +80,24 @@ export async function fetchOrganizationById(orgId) {
     }
 }
 
+// fetch an organization by its unique slug with an optional userId for is_followed info
+export async function fetchOrganizationBySlug(slug, userId) {
+    if (!slug) return APIError("Organization slug is undefined");
+
+    try {
+        const res = await supabase.rpc('get_organization_public', {
+            p_org_slug: slug,
+            p_user_id: userId,
+        });
+
+        if (res.error) return APIError(res.error.message);
+
+        return APISuccess(res.data[0]);
+    } catch (error) {
+        return APIError("Server error");
+    }
+}
+
 // Update organization profile
 export async function updateOrganization(orgId, data) {
     if (!orgId) return APIError("Organization ID is undefined");
@@ -139,6 +157,24 @@ export async function fetchOrganizationEvents(orgId) {
     } catch (error) {
         return APIError("Server error");
     }
+}
+
+// fetch an organizations events by its unique slug
+export async function fetchOrganizationEventsBySlug(slug) {
+    if (!slug) return APIError("Organization slug is undefined");
+
+    try {
+        const res = await supabase.rpc('list_org_events_all', {
+            p_org_slug: slug,
+        })
+
+        if (res.error) return APIError(res.error.message);
+
+        return APISuccess(res.data);
+    } catch (error) {
+        return APIError("Server error");
+    }
+
 }
 
 // Create a new event
@@ -321,6 +357,40 @@ export async function fetchOrganizationFollowers(orgId) {
 
         return APISuccess({ count: res.count });
     } catch (error) {
+        return APIError("Server error");
+    }
+}
+
+// subscribe to/follow an organization
+export async function followOrganization(orgId) {
+    if (!orgId) return APIError("Organization ID is undefined");
+
+    try {
+        const res = await supabase.rpc('subscribe_to_org', {
+            p_org_id: orgId
+        })
+
+        if (res.error) return APIError(res.error.message);
+
+        return APISuccess(res.data);
+    } catch(error) {
+        return APIError("Server error");
+    }
+}
+
+// unsubscribe from/unfollow an organization
+export async function unfollowOrganization(orgId) {
+    if (!orgId) return APIError("Organization ID is undefined");
+
+    try {
+        const res = await supabase.rpc('unsubscribe_from_org', {
+            p_org_id: orgId
+        })
+
+        if (res.error) return APIError(res.error.message);
+
+        return APISuccess(res.data);
+    } catch(error) {
         return APIError("Server error");
     }
 }
