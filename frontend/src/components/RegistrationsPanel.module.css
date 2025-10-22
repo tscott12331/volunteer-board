@@ -156,7 +156,7 @@
     border-left: 1px solid rgba(255,255,255,0.03);
 }
 .pillBtnActive {
-    background: var(--bs-primary, #667eea);
+    background: var(--bs-primary,);
     color: #fff !important;
     border-color: color-mix(in srgb, var(--bs-primary, #667eea) 50%, rgba(255,255,255,0.05));
 }

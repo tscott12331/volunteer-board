@@ -90,14 +90,16 @@ export default function RegistrationsPanel({
                 };
 
                 // Fetch organization data for all events (normalize ids)
-                const orgIds = [...new Set(res.data.map(event => getOrgIdFromEvent(event)).filter(Boolean))];
+                const orgIds = [...new Set(mergedEvents.map(event => getOrgIdFromEvent(event)).filter(Boolean))];
                 const orgMap = {};
 
                 await Promise.all(
                     orgIds.map(async (orgId) => {
                         try {
                             const orgData = await fetchOrganization(orgId);
-                            orgMap[orgId] = orgData;
+                            // fetchOrganization returns { success: true, data } on success.
+                            // store the raw org object in the map so renderers can use org.name etc.
+                            orgMap[orgId] = orgData && orgData.success ? orgData.data : orgData;
                         } catch (error) {
                             console.error(`Error fetching organization ${orgId}:`, error);
                         }
@@ -129,7 +131,8 @@ export default function RegistrationsPanel({
         if (selectedEvent) {
             const orgId = selectedEvent.organization_id || selectedEvent.org_id || selectedEvent.orgId;
             if (orgId) {
-                const org = orgDataMap[orgId];
+                const raw = orgDataMap[orgId];
+                const org = raw?.data ? raw.data : raw; // tolerate both APISuccess or raw object
                 setSelectedOrg(org || null);
                 return;
             }
@@ -405,14 +408,23 @@ export default function RegistrationsPanel({
                                         {/* Description */}
                                         <p className="mb-2">{selectedEvent.description}</p>
 
-                                        {/* Location */}
-                                        <p className="mb-1"><strong>Location:</strong> {selectedEvent.location_address || (typeof selectedEvent.location === 'string' ? selectedEvent.location : (selectedEvent.location?.city || selectedEvent.location?.name || (selectedEvent.location?.lat ? `${selectedEvent.location?.lat}, ${selectedEvent.location?.lon}` : 'TBD')))}</p>
+                                        {/* Location (robust) */}
+                                        {(() => {
+                                            const loc = selectedEvent.location;
+                                            const addr = selectedEvent.location_address || selectedEvent.address || selectedEvent.venue || null;
+                                            let locationText = 'TBD';
+                                            if (addr) locationText = addr;
+                                            else if (typeof loc === 'string') locationText = loc;
+                                            else if (loc && typeof loc === 'object') {
+                                                locationText = loc.address || loc.name || loc.city || (loc.lat ? `${loc.lat}, ${loc.lon ?? ''}`.trim() : 'TBD');
+                                            }
+                                            return <p className="mb-1"><strong>Location:</strong> {locationText}</p>;
+                                        })()}
 
                                         {/* Date & time */}
                                         <p className="mb-1"><strong>Start:</strong> {formatDateAtTime(start)}</p>
 
-                                        {/* Status & registration */}
-                                        <p className="mb-1"><strong>Event status:</strong> {selectedEvent.status || status}</p>
+                                        {/* Registration */}
                                         <p className="mb-1"><strong>Your registration:</strong> {selectedEvent.registration_status || (selectedEvent.is_registered ? 'registered' : 'not registered')}</p>
 
                                         {/* Capacity */}

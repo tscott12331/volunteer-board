@@ -262,8 +262,9 @@
     border-left: 1px solid rgba(255,255,255,0.03);
 }
 .pillBtnActive {
-    background: linear-gradient(90deg, rgba(102,126,234,0.95), rgba(79,70,229,0.95));
+    background: var(--bs-primary, #667eea);
     color: #fff !important;
+    border-color: color-mix(in srgb, var(--bs-primary, #667eea) 50%, rgba(255,255,255,0.05));
 }
 .pillIcon {
     font-size: 1rem;
