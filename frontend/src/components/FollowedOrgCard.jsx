@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import styles from './FollowedOrgCard.module.css';
+import { unfollowOrganization } from '../util/api/organizations';
 
 /*
     * Card displaying an organization a user follows
@@ -11,9 +12,21 @@ export default function FollowedOrgCard({
     const navigate = useNavigate();
 
     // unfollows a user from an organization
-    const handleUnfollow = (e) => {
+    const handleUnfollow = async (e) => {
         e.stopPropagation();
-        // not implemented
+        if (!confirm(`Unfollow ${org.name}?`)) return;
+        try {
+            const res = await unfollowOrganization(org.id);
+            if (res.success) {
+                // notify parent to refresh list
+                try { window.dispatchEvent(new CustomEvent('org:follow-changed', { detail: { orgId: org.id, action: 'unfollowed' } })); } catch {}
+            } else {
+                alert(res.error || 'Failed to unfollow');
+            }
+        } catch (err) {
+            console.error('Unfollow failed:', err);
+            alert('Failed to unfollow');
+        }
     }
 
     return (
@@ -22,16 +35,25 @@ export default function FollowedOrgCard({
             onClick={() => navigate(`/org/${org.slug}`)}
         >
             <div className="d-flex align-content-center gap-3">
-                <img className={"img-fluid d-inline-block " + styles.logo} src={org.logo_url} />
+                <img className={"img-fluid d-inline-block " + styles.logo} src={org.logo_url} alt={org.name} />
                 <h3 className={"fw-semibold mb-0 " + styles.name}>{org.name}</h3>
             </div>
-            <button 
-                role="button"
-                className="btn btn-outline-danger"
-                onClick={handleUnfollow}
-            >
-            Unfollow
-            </button>
+            <div className="d-flex gap-2 ms-auto">
+                <Link 
+                    to={`/org/${org.slug}`}
+                    className="btn btn-outline-light"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    View Organization
+                </Link>
+                <button 
+                    role="button"
+                    className="btn btn-danger"
+                    onClick={handleUnfollow}
+                >
+                    Unfollow
+                </button>
+            </div>
         </div>
     );
 }

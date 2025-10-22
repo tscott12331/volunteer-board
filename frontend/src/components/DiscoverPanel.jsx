@@ -1,10 +1,9 @@
 import styles from './DiscoverPanel.module.css';
 
 import { useEffect, useState } from "react";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { fetchEvents, registerForEvent, fetchOrganization } from "../util/api/events";
 import { formatDateAtTime } from '../util/date';
-import { Link } from 'react-router';
 
 /*
     * Panel in the volunteer dashboard to view and register for available events
@@ -310,6 +309,15 @@ export default function DiscoverPanel({ user }) {
                                         Register
                                     </button>
                                 )}
+                                {selectedOrg?.slug && (
+                                    <Link
+                                        to={`/org/${selectedOrg.slug}`}
+                                        className="btn btn-outline-secondary"
+                                    >
+                                        <i className="bi bi-building me-2"></i>
+                                        View Organization
+                                    </Link>
+                                )}
                             </div>
                         </div>
                     ) : (
@@ -442,6 +450,18 @@ export default function DiscoverPanel({ user }) {
                                             </>
                                         )}
                                     </button>
+                                    {/* View Org CTA */}
+                                    {orgData?.slug && (
+                                        <Link
+                                            to={`/org/${orgData.slug}`}
+                                            className="btn btn-outline-secondary btn-sm mt-2"
+                                            onClick={(ev) => ev.stopPropagation()}
+                                            aria-label={`View organization ${orgData?.name ?? ''}`}
+                                        >
+                                            <i className="bi bi-building me-2"></i>
+                                            View Organization
+                                        </Link>
+                                    )}
                                 </div>
                             </div>
                         </div>

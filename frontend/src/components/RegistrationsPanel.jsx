@@ -304,7 +304,7 @@ export default function RegistrationsPanel({
                         </div>
                         <div className="EventInfo-container col-md-8">
                             {selectedEvent ? (
-                                <div className={"EventInfo-card card p-3 shadow-sm EventInfo-container" + styles.detailCard + ' ' + styles.stickyDetail}>
+                                <div className={"EventInfo-card card p-3 shadow-sm " + styles.detailCard + ' ' + styles.stickyDetail}>
                                     <div className="d-flex gap-3 align-items-center mb-2">
                                         {selectedOrg?.logo_url || selectedOrg?.image_url ? (
                                             <img src={selectedOrg.logo_url || selectedOrg.image_url} alt={selectedOrg?.name} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }} />
@@ -328,6 +328,15 @@ export default function RegistrationsPanel({
                                         >
                                             Unregister
                                         </button>
+                                        {selectedOrg?.slug && (
+                                            <a
+                                                href={`/org/${selectedOrg.slug}`}
+                                                className="btn btn-outline-secondary"
+                                            >
+                                                <i className="bi bi-building me-2"></i>
+                                                View Organization
+                                            </a>
+                                        )}
                                     </div>
                                 </div>
                             ) : (

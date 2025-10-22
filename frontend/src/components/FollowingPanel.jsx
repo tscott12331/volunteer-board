@@ -31,12 +31,24 @@ export default function FollowingPanel({
     const [orgs, setOrgs] = useState([]);
 
     useEffect(() => {
+        if (!user?.id) return;
         fetchUserOrgSubscription(user.id).then(res => {
             if(res.success) {
                 setOrgs(res.data);
             }
         })
-    }, []);
+    }, [user?.id]);
+
+    useEffect(() => {
+        const handler = () => {
+            if (!user?.id) return;
+            fetchUserOrgSubscription(user.id).then(res => {
+                if (res.success) setOrgs(res.data);
+            });
+        };
+        window.addEventListener('org:follow-changed', handler);
+        return () => window.removeEventListener('org:follow-changed', handler);
+    }, [user?.id]);
     
     return (
         <>
