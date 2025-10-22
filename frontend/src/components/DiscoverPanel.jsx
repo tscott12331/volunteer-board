@@ -28,6 +28,10 @@ export default function DiscoverPanel({ user }) {
 
     // view mode: 'list' or 'grid'
     const [viewMode, setViewMode] = useState('list');
+    
+    // pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5; // 5 events per page
 
     // the selected event will be displayed in the detail panel on the right
     const [selectedEvent, setSelectedEvent] = useState(undefined);
@@ -66,6 +70,14 @@ export default function DiscoverPanel({ user }) {
     const search = () => {
         setSearchQuery(searchValue.length > 0 ? searchValue : undefined);
     }
+    
+    // Debounce search as you type (300ms)
+    useEffect(() => {
+        const t = setTimeout(() => {
+            setSearchQuery(searchValue.length > 0 ? searchValue : undefined);
+        }, 300);
+        return () => clearTimeout(t);
+    }, [searchValue]);
 
     const filterEventBySearch = (e, query) => {
         if(!query) return true;
@@ -120,19 +132,30 @@ export default function DiscoverPanel({ user }) {
         })
     }, [user, startDate, endDate]);
 
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, startDate, endDate]);
+
+    // Calculate filtered and paginated events
+    const filteredEvents = events.filter(e => filterEventBySearch(e, searchQuery));
+    const totalPages = Math.ceil(filteredEvents.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedEvents = filteredEvents.slice(startIndex, endIndex);
+
     // auto-select the first visible event when events or the search filter change
     useEffect(() => {
-        const visible = events.filter(e => filterEventBySearch(e, searchQuery));
-        if (visible.length === 0) {
+        if (paginatedEvents.length === 0) {
             setSelectedEvent(undefined);
             return;
         }
-        // keep existing selection if it's still visible, otherwise select the first one
+        // keep existing selection if it's still visible on current page, otherwise select the first one
         setSelectedEvent(prev => {
-            if (prev && visible.some(v => v.id === prev.id)) return prev;
-            return visible[0];
+            if (prev && paginatedEvents.some(v => v.id === prev.id)) return prev;
+            return paginatedEvents[0];
         });
-    }, [events, searchQuery]);
+    }, [events, searchQuery, currentPage]);
 
     useEffect(() => {
         if (!selectedEvent?.org_id) {
@@ -230,7 +253,7 @@ export default function DiscoverPanel({ user }) {
             <div className={"row mt-4 " + styles.eventsWrappers}>
                 <div className="col-md-4">
                     <div className={styles.eventList}>
-                        {events.filter(e => filterEventBySearch(e, searchQuery)).map(e => {
+                        {paginatedEvents.map(e => {
                             const isRegistered = e.is_registered || registeredEvents[e.id];
                             return (
                             <button
@@ -333,7 +356,7 @@ export default function DiscoverPanel({ user }) {
             ) : (
             // Grid View
             <div className="row g-3">
-                {events.filter(e => filterEventBySearch(e, searchQuery)).map(e => {
+                {paginatedEvents.map(e => {
                     const orgData = orgDataMap[e.org_id];
                     const isRegistered = e.is_registered || registeredEvents[e.id];
 
@@ -475,6 +498,67 @@ export default function DiscoverPanel({ user }) {
             :
             <p className="text-center mt-4 text-muted">No events available</p>
             }
+            
+            {/* Pagination Controls */}
+            {filteredEvents.length > itemsPerPage && (
+                <nav aria-label="Event pagination" className="mt-4">
+                    <div className="d-flex justify-content-between align-items-center">
+                        <div className="text-muted small">
+                            Showing {startIndex + 1}-{Math.min(endIndex, filteredEvents.length)} of {filteredEvents.length} events
+                        </div>
+                        <ul className="pagination mb-0">
+                            <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                                <button 
+                                    className="page-link" 
+                                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                    disabled={currentPage === 1}
+                                    aria-label="Previous page"
+                                >
+                                    <i className="bi bi-chevron-left"></i>
+                                </button>
+                            </li>
+                            
+                            {/* Page numbers */}
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => {
+                                // Show first, last, current, and adjacent pages
+                                if (
+                                    pageNum === 1 ||
+                                    pageNum === totalPages ||
+                                    (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                                ) {
+                                    return (
+                                        <li key={pageNum} className={`page-item ${currentPage === pageNum ? 'active' : ''}`}>
+                                            <button 
+                                                className="page-link" 
+                                                onClick={() => setCurrentPage(pageNum)}
+                                            >
+                                                {pageNum}
+                                            </button>
+                                        </li>
+                                    );
+                                } else if (
+                                    pageNum === currentPage - 2 ||
+                                    pageNum === currentPage + 2
+                                ) {
+                                    return <li key={pageNum} className="page-item disabled"><span className="page-link">...</span></li>;
+                                }
+                                return null;
+                            })}
+                            
+                            <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                                <button 
+                                    className="page-link" 
+                                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                    disabled={currentPage === totalPages}
+                                    aria-label="Next page"
+                                >
+                                    <i className="bi bi-chevron-right"></i>
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+            )}
         {/* <EventInfoModal 
             id="info-modal" 
             event={selectedEvent} 

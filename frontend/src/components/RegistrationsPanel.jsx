@@ -25,6 +25,10 @@ export default function RegistrationsPanel({
     const [searchQuery, setSearchQuery] = useState(undefined);
     // simplified view filter: 'upcoming' | 'all' | 'finished'
     const [viewFilter, setViewFilter] = useState('upcoming');
+    
+    // pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5; // 5 events per page
 
     // currently selected event that will be displayed in detail panel
     const [selectedEvent, setSelectedEvent] = useState(undefined);
@@ -201,7 +205,7 @@ export default function RegistrationsPanel({
     };
 
     // Derived: filtered and sorted events (soonest first)
-    const displayedEvents = useMemo(() => {
+    const filteredEvents = useMemo(() => {
         const now = new Date();
         const arr = (events || []).filter(e => {
             if (searchQuery && !e.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
@@ -212,6 +216,17 @@ export default function RegistrationsPanel({
         });
         return arr.sort((a, b) => new Date(a.start_at) - new Date(b.start_at));
     }, [events, searchQuery, viewFilter]);
+    
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, viewFilter]);
+    
+    // Calculate pagination
+    const totalPages = Math.ceil(filteredEvents.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const displayedEvents = filteredEvents.slice(startIndex, endIndex);
 
     const hoursBetween = (startAt, endAt) => {
         try {
@@ -568,6 +583,67 @@ export default function RegistrationsPanel({
                     <p style={{ color: '#9ca3af', fontSize: '1.125rem', marginBottom: '0.5rem' }}>You haven't registered for any events yet.</p>
                     <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: 0 }}>Discover events and start making a difference!</p>
                 </div>
+            )}
+            
+            {/* Pagination Controls */}
+            {filteredEvents.length > itemsPerPage && (
+                <nav aria-label="Registration pagination" className="mt-4">
+                    <div className="d-flex justify-content-between align-items-center">
+                        <div className="text-muted small">
+                            Showing {startIndex + 1}-{Math.min(endIndex, filteredEvents.length)} of {filteredEvents.length} events
+                        </div>
+                        <ul className="pagination mb-0">
+                            <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                                <button 
+                                    className="page-link" 
+                                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                    disabled={currentPage === 1}
+                                    aria-label="Previous page"
+                                >
+                                    <i className="bi bi-chevron-left"></i>
+                                </button>
+                            </li>
+                            
+                            {/* Page numbers */}
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => {
+                                // Show first, last, current, and adjacent pages
+                                if (
+                                    pageNum === 1 ||
+                                    pageNum === totalPages ||
+                                    (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                                ) {
+                                    return (
+                                        <li key={pageNum} className={`page-item ${currentPage === pageNum ? 'active' : ''}`}>
+                                            <button 
+                                                className="page-link" 
+                                                onClick={() => setCurrentPage(pageNum)}
+                                            >
+                                                {pageNum}
+                                            </button>
+                                        </li>
+                                    );
+                                } else if (
+                                    pageNum === currentPage - 2 ||
+                                    pageNum === currentPage + 2
+                                ) {
+                                    return <li key={pageNum} className="page-item disabled"><span className="page-link">...</span></li>;
+                                }
+                                return null;
+                            })}
+                            
+                            <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                                <button 
+                                    className="page-link" 
+                                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                    disabled={currentPage === totalPages}
+                                    aria-label="Next page"
+                                >
+                                    <i className="bi bi-chevron-right"></i>
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
             )}
         </div>
     );
