@@ -7,7 +7,8 @@ import { unfollowOrganization } from '../util/api/organizations';
     * Users can navigate to the organization page or unfollow from this card
 */
 export default function FollowedOrgCard({
-    org
+    org,
+    onUnfollow
 }) {
     const navigate = useNavigate();
 
@@ -35,7 +36,11 @@ export default function FollowedOrgCard({
             onClick={() => navigate(`/org/${org.slug}`)}
         >
             <div className="d-flex align-content-center gap-3">
-                <img className={"img-fluid d-inline-block " + styles.logo} src={org.logo_url} alt={org.name} />
+                {org.logo_url ?
+                <img className={`${styles.logo} d-flex align-items-center justify-content-center`} src={org.logo_url} />
+                :
+                <div className={`${styles.logo} d-flex align-items-center justify-content-center`}>{org.name[0]}</div>
+                }
                 <h3 className={"fw-semibold mb-0 " + styles.name}>{org.name}</h3>
             </div>
             <div className="d-flex gap-2 ms-auto">

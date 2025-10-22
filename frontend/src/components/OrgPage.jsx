@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import styles from './OrgPage.module.css';
 import { fetchOrganizationBySlug, fetchOrganizationEventsBySlug, followOrganization, unfollowOrganization } from '../util/api/organizations';
+
 import { registerForEvent, unregisterFromEvent } from '../util/api/events';
 import { useParams } from 'react-router';
 import { supabase } from '../util/api/supabaseClient';
@@ -95,7 +96,6 @@ export default function OrgPage() {
             fetchOrganizationBySlug(slug, userId).then(res => {
                 if(res.success) {
                     setOrg(res.data);
-                    console.log(res.data);
                 }
             })
         });
