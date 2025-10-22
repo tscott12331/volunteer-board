@@ -26,13 +26,21 @@ export default function EventDetailPage({ user }) {
                 setError(null);
 
                 // Fetch event with registration status
+                // Use maybeSingle instead of single to handle cases where event doesn't exist or RLS blocks it
                 const { data, error: eventError } = await supabase
                     .from('events')
                     .select('*')
                     .eq('id', eventId)
-                    .single();
+                    .maybeSingle();
 
                 if (eventError) throw eventError;
+                
+                // If no event found, set error state
+                if (!data) {
+                    setError('Event not found or you do not have permission to view it.');
+                    setLoading(false);
+                    return;
+                }
 
                 // Check if user is registered
                 if (user) {
@@ -198,7 +206,23 @@ export default function EventDetailPage({ user }) {
                     >
                         <div className={styles.heroOverlay} />
                         <div className={styles.heroContent}>
-                            <h1 className={styles.heroTitle}>{event.title}</h1>
+                            <div className="d-flex align-items-start gap-2 mb-2">
+                                <h1 className={styles.heroTitle}>{event.title}</h1>
+                                {/* Status Badge */}
+                                {event.status && (
+                                    <span className={`badge ${
+                                        event.status === 'published' ? 'bg-success' :
+                                        event.status === 'cancelled' ? 'bg-danger' :
+                                        event.status === 'completed' ? 'bg-secondary' :
+                                        'bg-warning'
+                                    }`} style={{ fontSize: '0.875rem', padding: '0.5rem 0.75rem' }}>
+                                        {event.status === 'published' ? 'Published' :
+                                         event.status === 'cancelled' ? 'Cancelled' :
+                                         event.status === 'completed' ? 'Completed' :
+                                         event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+                                    </span>
+                                )}
+                            </div>
                             <div className={styles.heroFooter}>
                                 <div className={styles.chips}>
                                     <span className={styles.chip}>
@@ -224,7 +248,7 @@ export default function EventDetailPage({ user }) {
                                 </div>
 
                                 {/* Hero CTA */}
-                                {user && (
+                                {user && event.status === 'published' && (
                                     <div className={styles.heroButtons}>
                                         {isRegistered ? (
                                             <button 
@@ -278,6 +302,27 @@ export default function EventDetailPage({ user }) {
                 <div className="row">
                     {/* Main Content */}
                     <div className="col-lg-8">
+                        {/* Status Alert Banners */}
+                        {event.status === 'cancelled' && (
+                            <div className="alert alert-danger d-flex align-items-center mb-3" role="alert">
+                                <i className="bi bi-exclamation-triangle-fill me-2" style={{ fontSize: '1.5rem' }}></i>
+                                <div>
+                                    <strong>This event has been cancelled.</strong>
+                                    <div className="small">This event is no longer taking place. If you were registered, you have been notified.</div>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {event.status === 'completed' && (
+                            <div className="alert alert-secondary d-flex align-items-center mb-3" role="alert">
+                                <i className="bi bi-check-circle-fill me-2" style={{ fontSize: '1.5rem' }}></i>
+                                <div>
+                                    <strong>This event has been completed.</strong>
+                                    <div className="small">This event has already taken place.</div>
+                                </div>
+                            </div>
+                        )}
+                        
                         <div className="card shadow-sm">
                             <div className="card-body">
                                 {/* Title moved to hero */}
@@ -346,7 +391,7 @@ export default function EventDetailPage({ user }) {
                                 </div>
 
                                 {/* Registration Button */}
-                                {user && (
+                                {user && event.status === 'published' && (
                                     <div className="d-grid gap-2">
                                         {isRegistered ? (
                                             <>
