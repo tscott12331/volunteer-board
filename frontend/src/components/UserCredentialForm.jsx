@@ -162,20 +162,6 @@ export default function UserCredentialForm({
                             <button className="btn btn-link p-0" onClick={handleForgotPassword}>Forgot password?</button>
                         </div>
                     )}
-                    <div className="mb-3 d-flex gap-2">
-                        <div className={styles.signupOption}>
-                            <img className="img-thumbnail" src="/placeholder.svg" />
-                        </div>
-                        <div className={styles.signupOption}>
-                            <img className="img-thumbnail" src="/placeholder.svg" />
-                        </div>
-                        <div className={styles.signupOption}>
-                            <img className="img-thumbnail" src="/placeholder.svg" />
-                        </div>
-                        <div className={styles.signupOption}>
-                            <img className="img-thumbnail" src="/placeholder.svg" />
-                        </div>
-                    </div>
                     {!isSignin &&
                     <div className="mb-3 form-check">
                         <input type="checkbox" className="form-check-input" id="organization-check-input" name="is-org"/>
