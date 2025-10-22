@@ -337,7 +337,7 @@ export default function RegistrationsPanel({
             {events.length > 0 ? (
                 viewMode === 'list' ? (
                     // Two-column layout matching Discover
-                    <div className={"row mt-4 " + styles.eventsWrappers}>
+                    <div className={"row mt-4 " + styles.eventsWrappers} style={{ minHeight: '600px' }}>
                         <div className="col-md-4">
                             <div className={styles.eventList}>
                                 {displayedEvents.map((e, idx) => {
@@ -465,7 +465,7 @@ export default function RegistrationsPanel({
                     </div>
                 ) : (
                     // Grid View
-                    <div className="row g-3">
+                    <div className="row g-3" style={{ minHeight: '600px' }}>
                         {displayedEvents.map((e, idx) => {
                             const orgData = orgDataMap[getOrgIdFromEvent(e)];
                             const fallbackKey = `evt-${getOrgIdFromEvent(e) || 'noorg'}-${new Date(e.start_at).getTime()}-${idx}`;
@@ -585,20 +585,29 @@ export default function RegistrationsPanel({
                 </div>
             )}
             
-            {/* Pagination Controls */}
-            {filteredEvents.length > itemsPerPage && (
-                <nav aria-label="Registration pagination" className="mt-4">
-                    <div className="d-flex justify-content-between align-items-center">
-                        <div className="text-muted small">
+            {/* Pagination Controls - Fixed height container to prevent layout shifts */}
+            <nav 
+                aria-label="Registration pagination" 
+                className="mt-4" 
+                style={{ 
+                    minHeight: '60px',
+                    display: 'flex',
+                    alignItems: 'center'
+                }}
+            >
+                {filteredEvents.length > itemsPerPage ? (
+                    <div className="d-flex justify-content-between align-items-center w-100">
+                        <div className="text-muted small" style={{ minWidth: '180px' }}>
                             Showing {startIndex + 1}-{Math.min(endIndex, filteredEvents.length)} of {filteredEvents.length} events
                         </div>
-                        <ul className="pagination mb-0">
+                        <ul className="pagination mb-0" style={{ minWidth: '300px', justifyContent: 'center' }}>
                             <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
                                 <button 
                                     className="page-link" 
                                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                                     disabled={currentPage === 1}
                                     aria-label="Previous page"
+                                    style={{ minWidth: '40px' }}
                                 >
                                     <i className="bi bi-chevron-left"></i>
                                 </button>
@@ -617,6 +626,7 @@ export default function RegistrationsPanel({
                                             <button 
                                                 className="page-link" 
                                                 onClick={() => setCurrentPage(pageNum)}
+                                                style={{ minWidth: '40px' }}
                                             >
                                                 {pageNum}
                                             </button>
@@ -626,7 +636,11 @@ export default function RegistrationsPanel({
                                     pageNum === currentPage - 2 ||
                                     pageNum === currentPage + 2
                                 ) {
-                                    return <li key={pageNum} className="page-item disabled"><span className="page-link">...</span></li>;
+                                    return (
+                                        <li key={pageNum} className="page-item disabled">
+                                            <span className="page-link" style={{ minWidth: '40px' }}>...</span>
+                                        </li>
+                                    );
                                 }
                                 return null;
                             })}
@@ -637,14 +651,18 @@ export default function RegistrationsPanel({
                                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                                     disabled={currentPage === totalPages}
                                     aria-label="Next page"
+                                    style={{ minWidth: '40px' }}
                                 >
                                     <i className="bi bi-chevron-right"></i>
                                 </button>
                             </li>
                         </ul>
+                        <div style={{ minWidth: '180px' }}></div> {/* Spacer for balance */}
                     </div>
-                </nav>
-            )}
+                ) : (
+                    <div style={{ height: '1px' }}></div> // Invisible placeholder when no pagination needed
+                )}
+            </nav>
         </div>
     );
 }
