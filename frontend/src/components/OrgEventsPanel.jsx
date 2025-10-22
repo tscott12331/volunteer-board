@@ -243,6 +243,12 @@ export default function OrgEventsPanel({ organization }) {
                 <button type="button" className={`btn btn-sm ${statusFilter === 'draft' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => toggleStatusChip('draft')}>
                     <i className="bi bi-pencil-square me-1"/> Drafts
                 </button>
+                <button type="button" className={`btn btn-sm ${statusFilter === 'completed' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => toggleStatusChip('completed')}>
+                    <i className="bi bi-check-circle-fill me-1"/> Completed
+                </button>
+                <button type="button" className={`btn btn-sm ${statusFilter === 'cancelled' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => toggleStatusChip('cancelled')}>
+                    <i className="bi bi-x-circle-fill me-1"/> Cancelled
+                </button>
                 <button type="button" className={`btn btn-sm ${openOnly ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={toggleOpenOnly}>
                     <i className="bi bi-person-plus me-1"/> Open Spots
                 </button>
@@ -272,6 +278,8 @@ export default function OrgEventsPanel({ organization }) {
                     <option value="">All Statuses</option>
                     <option value="draft">Draft</option>
                     <option value="published">Published</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
                 </select>
                 <input
                     type="date"
