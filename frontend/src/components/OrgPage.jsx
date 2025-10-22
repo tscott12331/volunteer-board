@@ -57,7 +57,6 @@ export default function OrgPage() {
             fetchOrganizationBySlug(slug, userId).then(res => {
                 if(res.success) {
                     setOrg(res.data);
-                    console.log(res.data);
                 }
             })
         });
