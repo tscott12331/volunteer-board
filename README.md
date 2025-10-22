@@ -1,9 +1,9 @@
-# 🌟 StepUp — Volunteer Connection Platform
+# 🌟 StepUp - A Volunteer Connection Platform
 
 ### A Project for the **SOSE Hackathon @ CSUN**
 
 StepUp is a web application designed to make volunteering easier, smarter, and more accessible.  
-Our mission is to **bridge the gap between volunteers and organizations** — empowering individuals to give back to their communities while helping nonprofits efficiently manage volunteer opportunities.
+Our mission is to **bridge the gap between volunteers and organizations** - empowering individuals to give back to their communities while helping nonprofits efficiently manage volunteer opportunities.
 
 ---
 
@@ -42,10 +42,10 @@ By simplifying the connection between volunteers and organizations, StepUp promo
 
 ## 🌍 Project Theme
 
-> **SOSE Hackathon — “Building for Social Good”**
+> **SOSE Hackathon - “Building for Social Good”**
 
 StepUp embodies the spirit of social good by promoting **community service accessibility**.  
-It’s not just an app — it’s a step toward **stronger, more connected communities** where helping others fits naturally into everyday life.
+It’s not just an app - it’s a step toward **stronger, more connected communities** where helping others fits naturally into everyday life.
 
 ---
 
